@@ -851,22 +851,31 @@ export default function JarApp() {
           )}
 
           {activeTab === 'memories' && (
-            <div style={styles.tabContent}>
-              <div style={styles.answersList}>
-                {userAnswers.length === 0 ? (
-                  <p style={styles.emptyState}>No memories yet. Answer a question to start.</p>
-                ) : (
-                  userAnswers.map((answer, idx) => (
-                    <div key={idx} style={styles.answerCard}>
-                      <p style={styles.answerQuestion}>Q: {answer.questions.text}</p>
-                      <p style={styles.answerText}>{answer.answer_text}</p>
-                      <p style={styles.answerDate}>
-                        {new Date(answer.created_at).toLocaleDateString()}
+            <div style={styles.memoriesContainer}>
+              {userAnswers.length === 0 ? (
+                <div style={styles.emptyMemoriesBox}>
+                  <p style={styles.emptyMemoriesText}>No memories yet...</p>
+                  <p style={styles.emptyMemoriesSubtext}>Answer a question to begin building your story</p>
+                </div>
+              ) : (
+                <div style={styles.memoriesGrid}>
+                  {userAnswers.map((answer, idx) => (
+                    <div key={idx} style={styles.memoryCard}>
+                      <div style={styles.memoryQuestion}>
+                        <span style={styles.memoryQuestionLabel}>Question</span>
+                        <p style={styles.memoryQuestionText}>{answer.questions.text}</p>
+                      </div>
+                      <div style={styles.memoryAnswer}>
+                        <span style={styles.memoryAnswerLabel}>Your Answer</span>
+                        <p style={styles.memoryAnswerText}>{answer.answer_text}</p>
+                      </div>
+                      <p style={styles.memoryDate}>
+                        {new Date(answer.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
                       </p>
                     </div>
-                  ))
-                )}
-              </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
@@ -1348,6 +1357,91 @@ const styles = {
     fontFamily: "'Cormorant Garamond', Georgia, serif",
     transition: 'all 0.3s',
     marginLeft: 'auto',
+  },
+  memoriesContainer: {
+    animation: 'fadeIn 0.3s ease-out',
+    minHeight: '400px',
+  },
+  emptyMemoriesBox: {
+    background: 'rgba(26, 27, 36, 0.5)',
+    border: '1px solid rgba(97, 55, 117, 0.2)',
+    borderRadius: '16px',
+    padding: '60px 40px',
+    textAlign: 'center',
+    backdropFilter: 'blur(8px)',
+    minHeight: '300px',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyMemoriesText: {
+    fontSize: 'clamp(20px, 5vw, 28px)',
+    color: '#B4A1C4',
+    marginBottom: '12px',
+    fontWeight: 300,
+    fontStyle: 'italic',
+  },
+  emptyMemoriesSubtext: {
+    fontSize: '14px',
+    color: '#B0B0C8',
+    fontWeight: 300,
+  },
+  memoriesGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
+    gap: '20px',
+  },
+  memoryCard: {
+    background: 'rgba(97, 55, 117, 0.1)',
+    border: '1px solid rgba(97, 55, 117, 0.25)',
+    borderRadius: '16px',
+    padding: '24px',
+    backdropFilter: 'blur(8px)',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '16px',
+  },
+  memoryQuestion: {
+    borderBottom: '1px solid rgba(97, 55, 117, 0.2)',
+    paddingBottom: '12px',
+  },
+  memoryQuestionLabel: {
+    fontSize: '11px',
+    textTransform: 'uppercase',
+    color: '#B0B0C8',
+    letterSpacing: '1px',
+    fontWeight: 400,
+  },
+  memoryQuestionText: {
+    fontSize: '14px',
+    color: '#D4D4FF',
+    marginTop: '8px',
+    fontWeight: 300,
+    lineHeight: '1.6',
+    fontStyle: 'italic',
+  },
+  memoryAnswer: {
+    flex: 1,
+  },
+  memoryAnswerLabel: {
+    fontSize: '11px',
+    textTransform: 'uppercase',
+    color: '#B0B0C8',
+    letterSpacing: '1px',
+    fontWeight: 400,
+  },
+  memoryAnswerText: {
+    fontSize: '14px',
+    color: '#FFFFFF',
+    marginTop: '8px',
+    fontWeight: 300,
+    lineHeight: '1.7',
+  },
+  memoryDate: {
+    fontSize: '12px',
+    color: '#8A8E9E',
+    marginTop: '8px',
   },
   modalOverlay: {
     position: 'fixed',
