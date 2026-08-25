@@ -378,23 +378,7 @@ export default function JarApp() {
     }
   };
 
-  const askBack = async () => {
-    if (!currentQuestion) return;
-    try {
-      await supabase.from('questions').insert([
-        {
-          jar_id: activeJar.id,
-          user_id: currentQuestion.user_id,
-          text: currentQuestion.text,
-          ask_back_from: currentUser.id
-        }
-      ]);
-      showToast('Question echoed back into silence.', 'success');
-      await loadRandomQuestion(activeJar.id, currentUser.id);
-    } catch (err) {
-      showToast(`Failed to ask back: ${err.message}`, 'error');
-    }
-  };
+
 
   return (
     <div style={styles.container}>
