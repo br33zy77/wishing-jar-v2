@@ -388,19 +388,6 @@ export default function JarApp() {
     }
   };
 
-  const loadJars = async (userId) => {
-    try {
-      const { data, error } = await supabase
-        .from('jar_members')
-        .select('jar_id, jars(id, name, created_by)')
-        .eq('user_id', userId);
-      if (error) throw error;
-      setJars(data.map(jm => jm.jars));
-    } catch (err) {
-      console.error('Failed to load jars:', err);
-    }
-  };
-
   const createJar = async (e) => {
     e.preventDefault();
     setLoading(true);
