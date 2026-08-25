@@ -179,14 +179,24 @@ export default function JarApp() {
   const [userAnswers, setUserAnswers] = useState([]);
   const [activeTab, setActiveTab] = useState('questions');
   const [tagBack, setTagBack] = useState(false);
+  const [showInviteModal, setShowInviteModal] = useState(false);
+  const [invitationLink, setInvitationLink] = useState(null);
+  const [pendingInvite, setPendingInvite] = useState(null);
 
   const showToast = (message, type = 'success') => {
     setToast({ message, type });
   };
 
-  // Check auth on mount
+  // Check auth on mount and handle invitations
   useEffect(() => {
     const checkAuth = async () => {
+      // Check for invitation code in URL
+      const params = new URLSearchParams(window.location.search);
+      const inviteCode = params.get('invite');
+      if (inviteCode) {
+        setPendingInvite(inviteCode);
+      }
+
       const { data } = await supabase.auth.getSession();
       if (data.session) {
         const user = data.session.user;
@@ -196,8 +206,14 @@ export default function JarApp() {
           .eq('id', user.id)
           .single();
         setCurrentUser({ id: user.id, email: user.email, username: profile?.username });
-        setView('jar-select');
-        loadJars(user.id);
+
+        // If there's a pending invite, process it
+        if (inviteCode) {
+          await processInvitation(inviteCode, user.id);
+        } else {
+          setView('jar-select');
+          loadJars(user.id);
+        }
       }
     };
     checkAuth();
@@ -378,7 +394,93 @@ export default function JarApp() {
     }
   };
 
+  const generateInvitation = async () => {
+    if (!activeJar) return;
+    setLoading(true);
+    try {
+      // Generate a unique code
+      const code = Math.random().toString(36).substring(2, 10).toUpperCase();
 
+      // Store invitation in database
+      const { error } = await supabase.from('vault_invitations').insert([
+        {
+          vault_id: activeJar.id,
+          invitation_code: code,
+          created_by: currentUser.id
+        }
+      ]);
+
+      if (error) throw error;
+
+      // Generate shareable link
+      const link = `${window.location.origin}?invite=${code}`;
+      setInvitationLink(link);
+      showToast('Invitation link generated!', 'success');
+    } catch (err) {
+      showToast(`Failed to create invitation: ${err.message}`, 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const processInvitation = async (code, userId) => {
+    try {
+      // Get vault from invitation code
+      const { data: invitation, error } = await supabase
+        .from('vault_invitations')
+        .select('vault_id, expires_at')
+        .eq('invitation_code', code)
+        .single();
+
+      if (error || !invitation) {
+        showToast('Invalid or expired invitation link.', 'error');
+        setView('jar-select');
+        loadJars(userId);
+        return;
+      }
+
+      // Check if expired
+      if (new Date(invitation.expires_at) < new Date()) {
+        showToast('This invitation has expired.', 'error');
+        setView('jar-select');
+        loadJars(userId);
+        return;
+      }
+
+      // Add user to vault
+      const { error: addError } = await supabase
+        .from('jar_members')
+        .insert([{ jar_id: invitation.vault_id, user_id: userId }]);
+
+      if (addError) {
+        // User might already be a member
+        if (!addError.message.includes('duplicate')) {
+          throw addError;
+        }
+      }
+
+      // Load the vault
+      const { data: jar } = await supabase
+        .from('jars')
+        .select('*')
+        .eq('id', invitation.vault_id)
+        .single();
+
+      setActiveJar(jar);
+      setView('jar-main');
+      setActiveTab('questions');
+      await loadRandomQuestion(jar.id, userId);
+      await loadUserAnswers(userId);
+      showToast('Welcome to the vault!', 'success');
+
+      // Clear the URL parameter
+      window.history.replaceState({}, document.title, window.location.pathname);
+    } catch (err) {
+      showToast(`Failed to join vault: ${err.message}`, 'error');
+      setView('jar-select');
+      loadJars(userId);
+    }
+  };
 
   return (
     <div style={styles.container}>
@@ -406,11 +508,13 @@ export default function JarApp() {
         input, textarea {
           background: rgba(26, 27, 36, 0.8);
           border: 1px solid rgba(97, 55, 117, 0.4);
-          padding: 14px 16px;
+          padding: clamp(12px, 3vw, 16px);
           border-radius: 12px;
-          color: #E8EAEE;
+          color: #F5F5F5;
+          font-size: clamp(14px, 4vw, 16px);
           transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
           backdrop-filter: blur(8px);
+          min-height: 44px;
         }
 
         input:focus, textarea:focus {
@@ -566,6 +670,9 @@ export default function JarApp() {
           <div style={styles.jarMainHeader}>
             <button onClick={() => setView('jar-select')} style={styles.backButton}>← Back</button>
             <h2 style={styles.heading}>I'M CURIOUS...</h2>
+            <button onClick={() => { setShowInviteModal(true); setInvitationLink(null); }} style={styles.inviteButton}>
+              + Invite
+            </button>
           </div>
 
           {/* Current Question - Drawing from the Mist */}
@@ -590,7 +697,7 @@ export default function JarApp() {
                       required
                       style={{ ...styles.input, minHeight: '100px', resize: 'vertical' }}
                     />
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px', color: '#8A8E9E', fontSize: '13px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px', color: '#B0B0C8', fontSize: '13px' }}>
                       <input
                         type="checkbox"
                         id="tagback-checkbox"
@@ -680,6 +787,109 @@ export default function JarApp() {
               </div>
             </div>
           )}
+
+          {/* Invite Modal */}
+          {showInviteModal && (
+            <div style={styles.modalOverlay} onClick={() => setShowInviteModal(false)}>
+              <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+                  <h3 style={{ fontSize: '24px', color: '#F5F5F5', margin: 0 }}>Invite to Vault</h3>
+                  <button
+                    onClick={() => setShowInviteModal(false)}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: '#B0B0C8',
+                      fontSize: '24px',
+                      cursor: 'pointer',
+                      padding: 0,
+                      width: '30px',
+                      height: '30px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                {!invitationLink ? (
+                  <>
+                    <p style={{ color: '#B0B0C8', marginBottom: '24px', fontSize: 'clamp(13px, 4vw, 14px)' }}>
+                      Generate a shareable link to invite others to this vault. They can join without needing a pre-existing account.
+                    </p>
+                    <button
+                      onClick={generateInvitation}
+                      disabled={loading}
+                      style={{ ...styles.primaryButton, width: '100%' }}
+                    >
+                      {loading ? 'Generating...' : 'Generate Invite Link'}
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <p style={{ color: '#B0B0C8', marginBottom: '16px', fontSize: 'clamp(13px, 4vw, 14px)' }}>
+                      Share this link with anyone to invite them to the vault:
+                    </p>
+                    <div style={{
+                      background: 'rgba(97, 55, 117, 0.1)',
+                      border: '1px solid rgba(97, 55, 117, 0.3)',
+                      borderRadius: '8px',
+                      padding: '12px',
+                      marginBottom: '16px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                    }}>
+                      <input
+                        type="text"
+                        value={invitationLink}
+                        readOnly
+                        style={{
+                          flex: 1,
+                          background: 'transparent',
+                          border: 'none',
+                          color: '#B4A1C4',
+                          fontSize: 'clamp(12px, 3vw, 13px)',
+                          outline: 'none',
+                          fontFamily: "'Cormorant Garamond', Georgia, serif",
+                        }}
+                      />
+                      <button
+                        onClick={() => {
+                          navigator.clipboard.writeText(invitationLink);
+                          showToast('Link copied to clipboard!', 'success');
+                        }}
+                        style={{
+                          background: 'rgba(180, 161, 196, 0.2)',
+                          border: '1px solid rgba(180, 161, 196, 0.4)',
+                          color: '#B4A1C4',
+                          padding: '8px 16px',
+                          borderRadius: '6px',
+                          cursor: 'pointer',
+                          fontSize: 'clamp(12px, 3vw, 13px)',
+                          fontFamily: "'Cormorant Garamond', Georgia, serif",
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        Copy
+                      </button>
+                    </div>
+                    <p style={{ color: '#8A8E9E', fontSize: 'clamp(12px, 3vw, 13px)', marginBottom: '16px' }}>
+                      This link expires in 30 days.
+                    </p>
+                    <button
+                      onClick={() => setInvitationLink(null)}
+                      style={{ ...styles.primaryButton, width: '100%' }}
+                    >
+                      Create Another Link
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -718,12 +928,12 @@ const styles = {
     maxWidth: '600px',
   },
   title: {
-    fontSize: '64px',
+    fontSize: 'clamp(36px, 8vw, 64px)',
     fontWeight: 300,
     marginBottom: '16px',
     letterSpacing: '4px',
     fontFamily: "'Cormorant Garamond', Georgia, serif",
-    color: '#E8EAEE',
+    color: '#F5F5F5',
   },
   subtitle: {
     display: 'none',
@@ -780,7 +990,7 @@ const styles = {
   label: {
     fontSize: '12px',
     fontWeight: 400,
-    color: '#8A8E9E',
+    color: '#B0B0C8',
     textTransform: 'uppercase',
     letterSpacing: '1px',
   },
@@ -795,22 +1005,26 @@ const styles = {
   primaryButton: {
     background: 'rgba(97, 55, 117, 0.2)',
     border: '1px solid rgba(180, 161, 196, 0.4)',
-    padding: '12px 28px',
+    padding: 'clamp(12px, 3vw, 14px) clamp(24px, 6vw, 40px)',
     borderRadius: '24px',
-    color: '#B4A1C4',
+    color: '#C4B5D4',
     cursor: 'pointer',
-    fontSize: '14px',
+    fontSize: 'clamp(13px, 4vw, 14px)',
     fontWeight: 400,
     transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
     fontFamily: "'Cormorant Garamond', Georgia, serif",
     backdropFilter: 'blur(8px)',
+    minHeight: '44px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   secondaryButton: {
     background: 'transparent',
     border: '1px solid rgba(97, 55, 117, 0.3)',
     padding: '12px 28px',
     borderRadius: '24px',
-    color: '#8A8E9E',
+    color: '#B0B0C8',
     cursor: 'pointer',
     fontSize: '14px',
     fontWeight: 400,
@@ -821,7 +1035,7 @@ const styles = {
     background: 'transparent',
     border: 'none',
     padding: '8px 16px',
-    color: '#8A8E9E',
+    color: '#B0B0C8',
     cursor: 'pointer',
     fontSize: '14px',
     fontFamily: "'Cormorant Garamond', Georgia, serif",
@@ -832,7 +1046,7 @@ const styles = {
   jarSelectContainer: {
     maxWidth: '1200px',
     margin: '0 auto',
-    padding: '40px',
+    padding: 'clamp(20px, 5vw, 40px)',
     position: 'relative',
     zIndex: 2,
   },
@@ -846,15 +1060,15 @@ const styles = {
   },
   username: {
     fontSize: '14px',
-    color: '#8A8E9E',
+    color: '#B0B0C8',
     fontWeight: 300,
   },
   heading: {
-    fontSize: '48px',
+    fontSize: 'clamp(28px, 6vw, 48px)',
     fontWeight: 300,
     fontFamily: "'Cormorant Garamond', Georgia, serif",
     letterSpacing: '1px',
-    color: '#E8EAEE',
+    color: '#F5F5F5',
   },
   jarsGrid: {
     display: 'grid',
@@ -880,7 +1094,7 @@ const styles = {
   },
   jarMeta: {
     fontSize: '13px',
-    color: '#8A8E9E',
+    color: '#B0B0C8',
   },
   createJarCard: {
     background: 'rgba(97, 55, 117, 0.08)',
@@ -894,7 +1108,7 @@ const styles = {
     border: '1px solid rgba(97, 55, 117, 0.2)',
     padding: '12px 24px',
     borderRadius: '20px',
-    color: '#8A8E9E',
+    color: '#B0B0C8',
     cursor: 'pointer',
     fontSize: '14px',
     fontFamily: "'Cormorant Garamond', Georgia, serif",
@@ -904,7 +1118,7 @@ const styles = {
   jarMainContainer: {
     maxWidth: '800px',
     margin: '0 auto',
-    padding: '40px 20px',
+    padding: 'clamp(16px, 5vw, 40px)',
     position: 'relative',
     zIndex: 2,
   },
@@ -913,13 +1127,14 @@ const styles = {
     alignItems: 'center',
     gap: '16px',
     marginBottom: '48px',
+    flexWrap: 'wrap',
   },
   backButton: {
     background: 'transparent',
     border: '1px solid rgba(97, 55, 117, 0.3)',
     padding: '10px 16px',
     borderRadius: '8px',
-    color: '#8A8E9E',
+    color: '#B0B0C8',
     cursor: 'pointer',
     fontSize: '13px',
     fontFamily: "'Cormorant Garamond', Georgia, serif",
@@ -932,18 +1147,22 @@ const styles = {
     width: '100%',
     background: 'rgba(97, 55, 117, 0.2)',
     border: '1px solid rgba(180, 161, 196, 0.4)',
-    padding: '16px',
+    padding: 'clamp(12px, 3vw, 16px)',
     borderRadius: '24px',
-    color: '#B4A1C4',
+    color: '#C4B5D4',
     cursor: 'pointer',
-    fontSize: '15px',
+    fontSize: 'clamp(14px, 4vw, 15px)',
     fontWeight: 400,
     transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
     fontFamily: "'Cormorant Garamond', Georgia, serif",
     letterSpacing: '1px',
     backdropFilter: 'blur(8px)',
-    marginBottom: '24px',
+    marginBottom: 'clamp(16px, 4vw, 24px)',
     boxShadow: '0 0 30px rgba(97, 55, 117, 0.15)',
+    minHeight: '44px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   questionBoxContainer: {
     background: 'rgba(26, 27, 36, 0.6)',
@@ -953,11 +1172,11 @@ const styles = {
     backdropFilter: 'blur(12px)',
   },
   questionText: {
-    fontSize: '18px',
+    fontSize: 'clamp(16px, 5vw, 18px)',
     fontWeight: 300,
-    marginBottom: '28px',
+    marginBottom: 'clamp(20px, 4vw, 28px)',
     lineHeight: '1.8',
-    color: '#E8EAEE',
+    color: '#F5F5F5',
     fontStyle: 'italic',
     letterSpacing: '0.3px',
   },
@@ -991,7 +1210,7 @@ const styles = {
     background: 'transparent',
     border: 'none',
     padding: '16px',
-    color: '#8A8E9E',
+    color: '#B0B0C8',
     cursor: 'pointer',
     fontSize: '12px',
     fontWeight: 400,
@@ -1034,6 +1253,41 @@ const styles = {
   },
   answerDate: {
     fontSize: '12px',
-    color: '#8A8E9E',
+    color: '#B0B0C8',
+  },
+  inviteButton: {
+    background: 'rgba(97, 55, 117, 0.2)',
+    border: '1px solid rgba(180, 161, 196, 0.4)',
+    padding: 'clamp(8px, 2vw, 10px) clamp(12px, 3vw, 16px)',
+    borderRadius: '6px',
+    color: '#B4A1C4',
+    cursor: 'pointer',
+    fontSize: 'clamp(12px, 3vw, 13px)',
+    fontFamily: "'Cormorant Garamond', Georgia, serif",
+    transition: 'all 0.3s',
+    marginLeft: 'auto',
+  },
+  modalOverlay: {
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    background: 'rgba(0, 0, 0, 0.6)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 5000,
+    padding: '20px',
+  },
+  modal: {
+    background: 'rgba(26, 27, 36, 0.95)',
+    border: '1px solid rgba(97, 55, 117, 0.3)',
+    borderRadius: '16px',
+    padding: 'clamp(24px, 5vw, 32px)',
+    maxWidth: '500px',
+    width: '100%',
+    boxShadow: '0 20px 60px rgba(0, 0, 0, 0.6)',
+    backdropFilter: 'blur(16px)',
   },
 };
