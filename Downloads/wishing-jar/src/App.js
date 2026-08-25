@@ -234,10 +234,69 @@ export default function JarApp() {
   const [tagBack, setTagBack] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [invitationLink, setInvitationLink] = useState(null);
-  const [pendingInvite, setPendingInvite] = useState(null);
 
   const showToast = (message, type = 'success') => {
     setToast({ message, type });
+  };
+
+  // Process invitation helper
+  const processInvitation = async (code, userId) => {
+    try {
+      // Get vault from invitation code
+      const { data: invitation, error } = await supabase
+        .from('vault_invitations')
+        .select('vault_id, expires_at')
+        .eq('invitation_code', code)
+        .single();
+
+      if (error || !invitation) {
+        showToast('Invalid or expired invitation link.', 'error');
+        setView('jar-select');
+        loadJars(userId);
+        return;
+      }
+
+      // Check if expired
+      if (new Date(invitation.expires_at) < new Date()) {
+        showToast('This invitation has expired.', 'error');
+        setView('jar-select');
+        loadJars(userId);
+        return;
+      }
+
+      // Add user to vault
+      const { error: addError } = await supabase
+        .from('jar_members')
+        .insert([{ jar_id: invitation.vault_id, user_id: userId }]);
+
+      if (addError) {
+        // User might already be a member
+        if (!addError.message.includes('duplicate')) {
+          throw addError;
+        }
+      }
+
+      // Load the vault
+      const { data: jar } = await supabase
+        .from('jars')
+        .select('*')
+        .eq('id', invitation.vault_id)
+        .single();
+
+      setActiveJar(jar);
+      setView('jar-main');
+      setActiveTab('questions');
+      await loadRandomQuestion(jar.id, userId);
+      await loadUserAnswers(userId);
+      showToast('Welcome to the vault!', 'success');
+
+      // Clear the URL parameter
+      window.history.replaceState({}, document.title, window.location.pathname);
+    } catch (err) {
+      showToast(`Failed to join vault: ${err.message}`, 'error');
+      setView('jar-select');
+      loadJars(userId);
+    }
   };
 
   // Check auth on mount and handle invitations
@@ -246,9 +305,6 @@ export default function JarApp() {
       // Check for invitation code in URL
       const params = new URLSearchParams(window.location.search);
       const inviteCode = params.get('invite');
-      if (inviteCode) {
-        setPendingInvite(inviteCode);
-      }
 
       const { data } = await supabase.auth.getSession();
       if (data.session) {
@@ -473,65 +529,6 @@ export default function JarApp() {
       showToast(`Failed to create invitation: ${err.message}`, 'error');
     } finally {
       setLoading(false);
-    }
-  };
-
-  const processInvitation = async (code, userId) => {
-    try {
-      // Get vault from invitation code
-      const { data: invitation, error } = await supabase
-        .from('vault_invitations')
-        .select('vault_id, expires_at')
-        .eq('invitation_code', code)
-        .single();
-
-      if (error || !invitation) {
-        showToast('Invalid or expired invitation link.', 'error');
-        setView('jar-select');
-        loadJars(userId);
-        return;
-      }
-
-      // Check if expired
-      if (new Date(invitation.expires_at) < new Date()) {
-        showToast('This invitation has expired.', 'error');
-        setView('jar-select');
-        loadJars(userId);
-        return;
-      }
-
-      // Add user to vault
-      const { error: addError } = await supabase
-        .from('jar_members')
-        .insert([{ jar_id: invitation.vault_id, user_id: userId }]);
-
-      if (addError) {
-        // User might already be a member
-        if (!addError.message.includes('duplicate')) {
-          throw addError;
-        }
-      }
-
-      // Load the vault
-      const { data: jar } = await supabase
-        .from('jars')
-        .select('*')
-        .eq('id', invitation.vault_id)
-        .single();
-
-      setActiveJar(jar);
-      setView('jar-main');
-      setActiveTab('questions');
-      await loadRandomQuestion(jar.id, userId);
-      await loadUserAnswers(userId);
-      showToast('Welcome to the vault!', 'success');
-
-      // Clear the URL parameter
-      window.history.replaceState({}, document.title, window.location.pathname);
-    } catch (err) {
-      showToast(`Failed to join vault: ${err.message}`, 'error');
-      setView('jar-select');
-      loadJars(userId);
     }
   };
 
