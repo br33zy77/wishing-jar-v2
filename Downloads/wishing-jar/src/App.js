@@ -181,21 +181,19 @@ export default function JarApp() {
   const [tagBack, setTagBack] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [invitationLink, setInvitationLink] = useState(null);
-  const [pendingInvite, setPendingInvite] = useState(null);
+
 
   const showToast = (message, type = 'success') => {
     setToast({ message, type });
   };
 
   // Check auth on mount and handle invitations
+    // Check auth on mount and handle invitations
   useEffect(() => {
     const checkAuth = async () => {
       // Check for invitation code in URL
       const params = new URLSearchParams(window.location.search);
       const inviteCode = params.get('invite');
-      if (inviteCode) {
-        setPendingInvite(inviteCode);
-      }
 
       const { data } = await supabase.auth.getSession();
       if (data.session) {
