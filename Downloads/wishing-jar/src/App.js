@@ -73,11 +73,8 @@ const WisteriaVineLeft = () => (
     }}
     preserveAspectRatio="none"
   >
-    {/* Main vine */}
     <path d="M80 0 Q70 100 60 200 Q65 300 55 400 Q70 500 50 600 Q75 700 60 800 Q65 900 70 1000"
           stroke="#613775" strokeWidth="1.5" opacity="0.4" />
-
-    {/* Flowers along vine */}
     {[0, 80, 160, 240, 320, 400, 480, 560, 640, 720, 800, 880].map((y, i) => (
       <g key={`left-${i}`}>
         <circle cx="80" cy={y} r="10" fill="#613775" opacity={0.4 + (i % 3) * 0.2} filter="url(#glow)" />
@@ -86,7 +83,6 @@ const WisteriaVineLeft = () => (
         <circle cx="40" cy={y + 60} r="8" fill="#9B7FB1" opacity={0.3 + (i % 2) * 0.15} filter="url(#glow)" />
       </g>
     ))}
-
     <defs>
       <filter id="glow">
         <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
@@ -116,11 +112,8 @@ const WisteriaVineRight = () => (
     }}
     preserveAspectRatio="none"
   >
-    {/* Main vine */}
     <path d="M40 0 Q50 100 60 200 Q55 300 65 400 Q50 500 70 600 Q45 700 60 800 Q55 900 50 1000"
           stroke="#613775" strokeWidth="1.5" opacity="0.4" />
-
-    {/* Flowers along vine */}
     {[0, 80, 160, 240, 320, 400, 480, 560, 640, 720, 800, 880].map((y, i) => (
       <g key={`right-${i}`}>
         <circle cx="40" cy={y} r="10" fill="#613775" opacity={0.4 + (i % 3) * 0.2} filter="url(#glow)" />
@@ -129,7 +122,6 @@ const WisteriaVineRight = () => (
         <circle cx="80" cy={y + 60} r="8" fill="#9B7FB1" opacity={0.3 + (i % 2) * 0.15} filter="url(#glow)" />
       </g>
     ))}
-
     <defs>
       <filter id="glow">
         <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
@@ -182,15 +174,51 @@ export default function JarApp() {
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [invitationLink, setInvitationLink] = useState(null);
 
-
   const showToast = (message, type = 'success') => {
     setToast({ message, type });
+  };
+
+  const loadJars = async (userId) => {
+    try {
+      const { data, error } = await supabase
+        .from('jar_members')
+        .select('jar_id, jars(id, name, created_by)')
+        .eq('user_id', userId);
+      if (error) throw error;
+      setJars(data.map(jm => jm.jars));
+    } catch (err) {
+      console.error('Failed to load jars:', err);
+    }
+  };
+
+  const loadRandomQuestion = async (jarId, userId) => {
+    try {
+      const { data, error } = await supabase
+        .rpc('get_random_question', { jar_id: jarId, exclude_user_id: userId });
+      if (error) throw error;
+      setCurrentQuestion(data);
+    } catch (err) {
+      console.error('Failed to load question:', err);
+      setCurrentQuestion(null);
+    }
+  };
+
+  const loadUserAnswers = async (userId) => {
+    try {
+      const { data, error } = await supabase
+        .from('answers')
+        .select('question_id, questions(text), answer_text, created_at')
+        .eq('user_id', userId);
+      if (error) throw error;
+      setUserAnswers(data || []);
+    } catch (err) {
+      console.error('Failed to load answers:', err);
+    }
   };
 
   // Check auth on mount and handle invitations
   useEffect(() => {
     const checkAuth = async () => {
-      // Check for invitation code in URL
       const params = new URLSearchParams(window.location.search);
       const inviteCode = params.get('invite');
 
@@ -204,9 +232,7 @@ export default function JarApp() {
           .single();
         setCurrentUser({ id: user.id, email: user.email, username: profile?.username });
 
-        // If there's a pending invite, process it
         if (inviteCode) {
-          // Process invitation inline
           try {
             const { data: invitation, error } = await supabase
               .from('vault_invitations')
@@ -250,7 +276,7 @@ export default function JarApp() {
             showToast('Welcome to the vault!', 'success');
             window.history.replaceState({}, document.title, window.location.pathname);
           } catch (err) {
-            showToast(`Failed to join vault: ${err.message}`, 'error');
+            console.error('Invitation error:', err);
             setView('jar-select');
             loadJars(user.id);
           }
@@ -263,14 +289,148 @@ export default function JarApp() {
     checkAuth();
   }, []);
 
+  // Auth handlers
+  const handleSignUp = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+      });
+      if (error) throw error;
+      await supabase.from('profiles').insert([
+        { id: data.user.id, username, email }
+      ]);
+      setCurrentUser({ id: data.user.id, email, username });
+      setView('jar-select');
+      setEmail('');
+      setPassword('');
+      setUsername('');
+      showToast('Welcome to the Vault.', 'success');
+    } catch (err) {
+      showToast(`Sign up failed: ${err.message}`, 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      if (error) throw error;
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('username')
+        .eq('id', data.user.id)
+        .single();
+      setCurrentUser({ id: data.user.id, email: data.user.email, username: profile?.username });
+      setView('jar-select');
+      setEmail('');
+      setPassword('');
+      showToast('Sanctuary found.', 'success');
+    } catch (err) {
+      showToast(`Login failed: ${err.message}`, 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const createJar = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      const { data: jar, error } = await supabase
+        .from('jars')
+        .insert([{ name: jarName, created_by: currentUser.id }])
+        .select()
+        .single();
+      if (error) throw error;
+
+      await supabase.from('jar_members').insert([
+        { jar_id: jar.id, user_id: currentUser.id }
+      ]);
+
+      setJars([...jars, jar]);
+      setJarName('');
+      showToast(`Vessel created: ${jarName}`, 'success');
+    } catch (err) {
+      showToast(`Jar creation failed: ${err.message}`, 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const selectJar = async (jar) => {
+    setActiveJar(jar);
+    setView('jar-main');
+    setActiveTab('questions');
+    await loadRandomQuestion(jar.id, currentUser.id);
+    await loadUserAnswers(currentUser.id);
+  };
+
+  const addQuestion = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      await supabase.from('questions').insert([
+        { jar_id: activeJar.id, user_id: currentUser.id, text: questionText }
+      ]);
+      setQuestionText('');
+      showToast('Question cast into the mist.', 'success');
+    } catch (err) {
+      showToast(`Failed to add question: ${err.message}`, 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const submitAnswer = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      await supabase.from('answers').insert([
+        {
+          question_id: currentQuestion.id,
+          user_id: currentUser.id,
+          answer_text: answerText,
+        }
+      ]);
+
+      if (tagBack && currentQuestion) {
+        await supabase.from('questions').insert([
+          {
+            jar_id: activeJar.id,
+            user_id: currentQuestion.user_id,
+            text: currentQuestion.text,
+            ask_back_from: currentUser.id
+          }
+        ]);
+      }
+
+      setAnswerText('');
+      setTagBack(false);
+      await loadRandomQuestion(activeJar.id, currentUser.id);
+      await loadUserAnswers(currentUser.id);
+      showToast('Truth whispered into the night.', 'success');
+    } catch (err) {
+      showToast(`Failed to submit answer: ${err.message}`, 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const generateInvitation = async () => {
     if (!activeJar) return;
     setLoading(true);
     try {
-      // Generate a unique code
       const code = Math.random().toString(36).substring(2, 10).toUpperCase();
 
-      // Store invitation in database
       const { error } = await supabase.from('vault_invitations').insert([
         {
           vault_id: activeJar.id,
@@ -281,7 +441,6 @@ export default function JarApp() {
 
       if (error) throw error;
 
-      // Generate shareable link
       const link = `${window.location.origin}?invite=${code}`;
       setInvitationLink(link);
       showToast('Invitation link generated!', 'success');
@@ -291,6 +450,7 @@ export default function JarApp() {
       setLoading(false);
     }
   };
+
   return (
     <div style={styles.container}>
       <style>{`
@@ -484,7 +644,6 @@ export default function JarApp() {
             </button>
           </div>
 
-          {/* Current Question - Drawing from the Mist */}
           <div style={styles.mainQuestionSection}>
             {currentQuestion ? (
               <>
@@ -537,7 +696,6 @@ export default function JarApp() {
             )}
           </div>
 
-          {/* Tab Navigation */}
           <div style={styles.tabNav}>
             <button
               onClick={() => setActiveTab('questions')}
@@ -559,7 +717,6 @@ export default function JarApp() {
             </button>
           </div>
 
-          {/* Tab Content */}
           {activeTab === 'questions' && (
             <div style={styles.tabContent}>
               <form onSubmit={addQuestion} style={styles.form}>
@@ -597,7 +754,6 @@ export default function JarApp() {
             </div>
           )}
 
-          {/* Invite Modal */}
           {showInviteModal && (
             <div style={styles.modalOverlay} onClick={() => setShowInviteModal(false)}>
               <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
@@ -721,8 +877,6 @@ const styles = {
     position: 'relative',
     overflow: 'hidden',
   },
-
-  // Landing
   landing: {
     minHeight: '100vh',
     display: 'flex',
@@ -744,12 +898,6 @@ const styles = {
     fontFamily: "'Cormorant Garamond', Georgia, serif",
     color: '#F5F5F5',
   },
-  subtitle: {
-    display: 'none',
-  },
-  landingDescription: {
-    display: 'none',
-  },
   heroButton: {
     background: 'rgba(97, 55, 117, 0.2)',
     border: '1px solid rgba(180, 161, 196, 0.5)',
@@ -765,8 +913,6 @@ const styles = {
     backdropFilter: 'blur(8px)',
     boxShadow: '0 0 30px rgba(97, 55, 117, 0.2)',
   },
-
-  // Auth
   authContainer: {
     minHeight: '100vh',
     display: 'flex',
@@ -828,18 +974,6 @@ const styles = {
     alignItems: 'center',
     justifyContent: 'center',
   },
-  secondaryButton: {
-    background: 'transparent',
-    border: '1px solid rgba(97, 55, 117, 0.3)',
-    padding: '12px 28px',
-    borderRadius: '24px',
-    color: '#B0B0C8',
-    cursor: 'pointer',
-    fontSize: '14px',
-    fontWeight: 400,
-    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-    fontFamily: "'Cormorant Garamond', Georgia, serif",
-  },
   toggleButton: {
     background: 'transparent',
     border: 'none',
@@ -850,8 +984,6 @@ const styles = {
     fontFamily: "'Cormorant Garamond', Georgia, serif",
     transition: 'color 0.3s',
   },
-
-  // Jar Select
   jarSelectContainer: {
     maxWidth: '1200px',
     margin: '0 auto',
@@ -922,8 +1054,6 @@ const styles = {
     fontSize: '14px',
     fontFamily: "'Cormorant Garamond', Georgia, serif",
   },
-
-  // Jar Main
   jarMainContainer: {
     maxWidth: '800px',
     margin: '0 auto',
