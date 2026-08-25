@@ -366,6 +366,46 @@ export default function JarApp() {
     }
   };
 
+  const deleteJar = async (jarId, jarName) => {
+    if (!window.confirm(`Are you sure you want to delete "${jarName}"? This cannot be undone.`)) {
+      return;
+    }
+
+    setLoading(true);
+    try {
+      // Delete answers
+      const { data: questions } = await supabase
+        .from('questions')
+        .select('id')
+        .eq('jar_id', jarId);
+
+      if (questions && questions.length > 0) {
+        const questionIds = questions.map(q => q.id);
+        await supabase.from('answers').delete().in('question_id', questionIds);
+      }
+
+      // Delete questions
+      await supabase.from('questions').delete().eq('jar_id', jarId);
+
+      // Delete members
+      await supabase.from('jar_members').delete().eq('jar_id', jarId);
+
+      // Delete invitations
+      await supabase.from('vault_invitations').delete().eq('vault_id', jarId);
+
+      // Delete jar
+      const { error } = await supabase.from('jars').delete().eq('id', jarId);
+      if (error) throw error;
+
+      setJars(jars.filter(j => j.id !== jarId));
+      showToast(`Vault "${jarName}" has been deleted.`, 'success');
+    } catch (err) {
+      showToast(`Failed to delete vault: ${err.message}`, 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const selectJar = async (jar) => {
     setActiveJar(jar);
     setView('jar-main');
@@ -602,11 +642,32 @@ export default function JarApp() {
             {jars.map((jar) => (
               <div
                 key={jar.id}
-                onClick={() => selectJar(jar)}
                 style={styles.jarCard}
               >
-                <h3 style={styles.jarTitle}>{jar.name}</h3>
-                <p style={styles.jarMeta}>Created by {jar.created_by === currentUser.id ? 'you' : 'another'}</p>
+                <div onClick={() => selectJar(jar)} style={{ cursor: 'pointer', marginBottom: '12px' }}>
+                  <h3 style={styles.jarTitle}>{jar.name}</h3>
+                  <p style={styles.jarMeta}>Created by {jar.created_by === currentUser.id ? 'you' : 'another'}</p>
+                </div>
+                {jar.created_by === currentUser.id && (
+                  <button
+                    onClick={() => deleteJar(jar.id, jar.name)}
+                    disabled={loading}
+                    style={{
+                      background: 'rgba(180, 140, 140, 0.2)',
+                      border: '1px solid rgba(180, 140, 140, 0.4)',
+                      color: '#D4A0A0',
+                      padding: '8px 16px',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      fontSize: '12px',
+                      fontFamily: "'Cormorant Garamond', Georgia, serif",
+                      width: '100%',
+                      transition: 'all 0.3s',
+                    }}
+                  >
+                    {loading ? 'Deleting...' : 'Delete Vault'}
+                  </button>
+                )}
               </div>
             ))}
 
@@ -1022,7 +1083,6 @@ const styles = {
     border: '1px solid rgba(97, 55, 117, 0.2)',
     borderRadius: '16px',
     padding: '28px',
-    cursor: 'pointer',
     transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
     backdropFilter: 'blur(8px)',
   },
