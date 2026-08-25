@@ -317,9 +317,19 @@ export default function JarApp() {
           } catch (err) {
             setToast({ message: `Failed to join vault: ${err.message}`, type: 'error' });
             setView('jar-select');
+            const { data: jarsData } = await supabase
+              .from('jar_members')
+              .select('jar_id, jars(id, name, created_by)')
+              .eq('user_id', user.id);
+            setJars(jarsData ? jarsData.map(jm => jm.jars) : []);
           }
         } else {
           setView('jar-select');
+          const { data: jarsData } = await supabase
+            .from('jar_members')
+            .select('jar_id, jars(id, name, created_by)')
+            .eq('user_id', user.id);
+          setJars(jarsData ? jarsData.map(jm => jm.jars) : []);
         }
       }
     };
