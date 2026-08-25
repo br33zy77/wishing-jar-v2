@@ -1,18 +1,170 @@
 import React, { useState, useEffect } from 'react';
 import { createClient } from '@supabase/supabase-js';
 
-// Initialize Supabase - will use environment variables in Vercel
+// Initialize Supabase
 const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
 const supabaseKey = process.env.REACT_APP_SUPABASE_ANON_KEY;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
+// Toast Component
+const Toast = ({ message, type = 'success', onDismiss }) => {
+  useEffect(() => {
+    const timer = setTimeout(onDismiss, 3000);
+    return () => clearTimeout(timer);
+  }, [onDismiss]);
+
+  const colors = {
+    success: '#B4A1C4',
+    error: '#8A6B8F',
+    info: '#B4A1C4',
+  };
+
+  return (
+    <div style={{
+      position: 'fixed',
+      bottom: '32px',
+      right: '32px',
+      display: 'flex',
+      alignItems: 'center',
+      padding: '14px 20px',
+      borderRadius: '8px',
+      borderLeft: `1px solid ${colors[type]}`,
+      background: `rgba(180, 161, 196, 0.15)`,
+      minWidth: '280px',
+      boxShadow: '0 8px 24px rgba(0, 0, 0, 0.3)',
+      backdropFilter: 'blur(8px)',
+      animation: 'slideIn 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+      zIndex: 10000,
+    }}>
+      <span style={{
+        fontSize: '18px',
+        color: colors[type],
+        marginRight: '12px',
+        fontFamily: 'Georgia, serif',
+      }}>
+        ✦
+      </span>
+      <span style={{
+        flex: 1,
+        color: colors[type],
+        fontSize: '14px',
+        fontFamily: "'Cormorant Garamond', Georgia, serif",
+      }}>
+        {message}
+      </span>
+    </div>
+  );
+};
+
+// Wisteria Vine Edge Component - Left Side
+const WisteriaVineLeft = () => (
+  <svg
+    width="120"
+    height="100%"
+    viewBox="0 0 120 1000"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    style={{
+      position: 'fixed',
+      left: 0,
+      top: 0,
+      pointerEvents: 'none',
+      zIndex: 1,
+    }}
+    preserveAspectRatio="none"
+  >
+    {/* Main vine */}
+    <path d="M80 0 Q70 100 60 200 Q65 300 55 400 Q70 500 50 600 Q75 700 60 800 Q65 900 70 1000"
+          stroke="#613775" strokeWidth="1.5" opacity="0.4" />
+
+    {/* Flowers along vine */}
+    {[0, 80, 160, 240, 320, 400, 480, 560, 640, 720, 800, 880].map((y, i) => (
+      <g key={`left-${i}`}>
+        <circle cx="80" cy={y} r="10" fill="#613775" opacity={0.4 + (i % 3) * 0.2} filter="url(#glow)" />
+        <circle cx="55" cy={y + 30} r="8" fill="#8B6B9F" opacity={0.3 + (i % 2) * 0.1} filter="url(#glow)" />
+        <circle cx="100" cy={y + 40} r="7" fill="#7A5F87" opacity={0.35 + (i % 3) * 0.15} filter="url(#glow)" />
+        <circle cx="40" cy={y + 60} r="8" fill="#9B7FB1" opacity={0.3 + (i % 2) * 0.15} filter="url(#glow)" />
+      </g>
+    ))}
+
+    <defs>
+      <filter id="glow">
+        <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+        <feMerge>
+          <feMergeNode in="coloredBlur"/>
+          <feMergeNode in="SourceGraphic"/>
+        </feMerge>
+      </filter>
+    </defs>
+  </svg>
+);
+
+// Wisteria Vine Edge Component - Right Side
+const WisteriaVineRight = () => (
+  <svg
+    width="120"
+    height="100%"
+    viewBox="0 0 120 1000"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    style={{
+      position: 'fixed',
+      right: 0,
+      top: 0,
+      pointerEvents: 'none',
+      zIndex: 1,
+    }}
+    preserveAspectRatio="none"
+  >
+    {/* Main vine */}
+    <path d="M40 0 Q50 100 60 200 Q55 300 65 400 Q50 500 70 600 Q45 700 60 800 Q55 900 50 1000"
+          stroke="#613775" strokeWidth="1.5" opacity="0.4" />
+
+    {/* Flowers along vine */}
+    {[0, 80, 160, 240, 320, 400, 480, 560, 640, 720, 800, 880].map((y, i) => (
+      <g key={`right-${i}`}>
+        <circle cx="40" cy={y} r="10" fill="#613775" opacity={0.4 + (i % 3) * 0.2} filter="url(#glow)" />
+        <circle cx="65" cy={y + 30} r="8" fill="#8B6B9F" opacity={0.3 + (i % 2) * 0.1} filter="url(#glow)" />
+        <circle cx="20" cy={y + 40} r="7" fill="#7A5F87" opacity={0.35 + (i % 3) * 0.15} filter="url(#glow)" />
+        <circle cx="80" cy={y + 60} r="8" fill="#9B7FB1" opacity={0.3 + (i % 2) * 0.15} filter="url(#glow)" />
+      </g>
+    ))}
+
+    <defs>
+      <filter id="glow">
+        <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+        <feMerge>
+          <feMergeNode in="coloredBlur"/>
+          <feMergeNode in="SourceGraphic"/>
+        </feMerge>
+      </filter>
+    </defs>
+  </svg>
+);
+
+// Fog Overlay Component
+const FogOverlay = () => (
+  <div style={{
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    background: 'radial-gradient(ellipse at 50% 30%, rgba(142, 147, 166, 0.08) 0%, rgba(49, 25, 64, 0.15) 100%)',
+    pointerEvents: 'none',
+    zIndex: 1,
+  }} />
+);
+
+// Main App Component
 export default function JarApp() {
   const [currentUser, setCurrentUser] = useState(null);
   const [jars, setJars] = useState([]);
   const [activeJar, setActiveJar] = useState(null);
-  const [view, setView] = useState('landing'); // landing, auth, jar-select, jar-main
-  const [authMode, setAuthMode] = useState('login'); // login or signup
+  const [view, setView] = useState('landing');
+  const [authMode, setAuthMode] = useState('login');
   const [loading, setLoading] = useState(false);
+  const [toast, setToast] = useState(null);
 
   // Auth forms
   const [email, setEmail] = useState('');
@@ -25,6 +177,12 @@ export default function JarApp() {
   const [answerText, setAnswerText] = useState('');
   const [currentQuestion, setCurrentQuestion] = useState(null);
   const [userAnswers, setUserAnswers] = useState([]);
+  const [activeTab, setActiveTab] = useState('questions');
+  const [tagBack, setTagBack] = useState(false);
+
+  const showToast = (message, type = 'success') => {
+    setToast({ message, type });
+  };
 
   // Check auth on mount
   useEffect(() => {
@@ -63,8 +221,9 @@ export default function JarApp() {
       setEmail('');
       setPassword('');
       setUsername('');
+      showToast('Welcome to the Vault.', 'success');
     } catch (err) {
-      alert(`Sign up failed: ${err.message}`);
+      showToast(`Sign up failed: ${err.message}`, 'error');
     } finally {
       setLoading(false);
     }
@@ -88,8 +247,9 @@ export default function JarApp() {
       setView('jar-select');
       setEmail('');
       setPassword('');
+      showToast('Sanctuary found.', 'success');
     } catch (err) {
-      alert(`Login failed: ${err.message}`);
+      showToast(`Login failed: ${err.message}`, 'error');
     } finally {
       setLoading(false);
     }
@@ -118,17 +278,16 @@ export default function JarApp() {
         .select()
         .single();
       if (error) throw error;
-      
-      // Add creator as member
+
       await supabase.from('jar_members').insert([
         { jar_id: jar.id, user_id: currentUser.id }
       ]);
-      
+
       setJars([...jars, jar]);
       setJarName('');
-      setView('jar-select');
+      showToast(`Vessel created: ${jarName}`, 'success');
     } catch (err) {
-      alert(`Jar creation failed: ${err.message}`);
+      showToast(`Jar creation failed: ${err.message}`, 'error');
     } finally {
       setLoading(false);
     }
@@ -137,9 +296,8 @@ export default function JarApp() {
   const selectJar = async (jar) => {
     setActiveJar(jar);
     setView('jar-main');
-    // Load random question
+    setActiveTab('questions');
     await loadRandomQuestion(jar.id, currentUser.id);
-    // Load user's answers
     await loadUserAnswers(currentUser.id);
   };
 
@@ -176,9 +334,9 @@ export default function JarApp() {
         { jar_id: activeJar.id, user_id: currentUser.id, text: questionText }
       ]);
       setQuestionText('');
-      alert('Question added!');
+      showToast('Question cast into the mist.', 'success');
     } catch (err) {
-      alert(`Failed to add question: ${err.message}`);
+      showToast(`Failed to add question: ${err.message}`, 'error');
     } finally {
       setLoading(false);
     }
@@ -195,12 +353,26 @@ export default function JarApp() {
           answer_text: answerText,
         }
       ]);
+
+      // If Tag Back is checked, ask the question back to the original author
+      if (tagBack && currentQuestion) {
+        await supabase.from('questions').insert([
+          {
+            jar_id: activeJar.id,
+            user_id: currentQuestion.user_id,
+            text: currentQuestion.text,
+            ask_back_from: currentUser.id
+          }
+        ]);
+      }
+
       setAnswerText('');
-      // Load next question
+      setTagBack(false);
       await loadRandomQuestion(activeJar.id, currentUser.id);
       await loadUserAnswers(currentUser.id);
+      showToast('Truth whispered into the night.', 'success');
     } catch (err) {
-      alert(`Failed to submit answer: ${err.message}`);
+      showToast(`Failed to submit answer: ${err.message}`, 'error');
     } finally {
       setLoading(false);
     }
@@ -217,79 +389,56 @@ export default function JarApp() {
           ask_back_from: currentUser.id
         }
       ]);
-      alert('Question sent back!');
+      showToast('Question echoed back into silence.', 'success');
+      await loadRandomQuestion(activeJar.id, currentUser.id);
     } catch (err) {
-      alert(`Failed to ask back: ${err.message}`);
+      showToast(`Failed to ask back: ${err.message}`, 'error');
     }
   };
-
-  // Hydrangea SVG icon
-  const HydrangeaIcon = () => (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" style={{ opacity: 0.7 }}>
-      <circle cx="8" cy="4" r="1.5" fill="#b4a7d6"/>
-      <circle cx="5" cy="6" r="1.5" fill="#b4a7d6"/>
-      <circle cx="11" cy="6" r="1.5" fill="#b4a7d6"/>
-      <circle cx="4" cy="9" r="1.5" fill="#b4a7d6"/>
-      <circle cx="12" cy="9" r="1.5" fill="#b4a7d6"/>
-      <circle cx="8" cy="11" r="1.5" fill="#b4a7d6"/>
-    </svg>
-  );
 
   return (
     <div style={styles.container}>
       <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300&display=swap');
+
         * {
           margin: 0;
           padding: 0;
           box-sizing: border-box;
         }
-        
-        body {
-          font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-          background: #1a1a2e;
-          color: #f5f3f0;
+
+        html, body {
+          font-family: 'Cormorant Garamond', Georgia, serif;
+          background: linear-gradient(135deg, #0a0a12 0%, #1a1428 50%, #0f0f18 100%);
+          color: #E8EAEE;
           line-height: 1.6;
         }
 
         input, textarea, button {
-          font-family: inherit;
+          font-family: 'Cormorant Garamond', Georgia, serif;
           color: inherit;
         }
 
         input, textarea {
-          background: rgba(255, 255, 255, 0.08);
-          border: 1px solid rgba(180, 167, 214, 0.3);
-          padding: 12px;
-          border-radius: 8px;
-          color: #f5f3f0;
-          transition: all 0.2s;
+          background: rgba(26, 27, 36, 0.8);
+          border: 1px solid rgba(97, 55, 117, 0.4);
+          padding: 14px 16px;
+          border-radius: 12px;
+          color: #E8EAEE;
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          backdrop-filter: blur(8px);
         }
 
         input:focus, textarea:focus {
           outline: none;
-          border-color: #b4a7d6;
-          box-shadow: 0 0 12px rgba(180, 167, 214, 0.2);
+          background: rgba(97, 55, 117, 0.12);
+          border-color: #B4A1C4;
+          box-shadow: 0 0 24px rgba(97, 55, 117, 0.4), inset 0 0 12px rgba(97, 55, 117, 0.1);
         }
 
         button {
-          background: linear-gradient(135deg, #b4a7d6 0%, #9b8fa3 100%);
-          border: none;
-          padding: 12px 24px;
-          border-radius: 8px;
           cursor: pointer;
-          font-weight: 600;
-          transition: all 0.3s;
-          box-shadow: 0 4px 15px rgba(180, 167, 214, 0.2);
-        }
-
-        button:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 6px 20px rgba(180, 167, 214, 0.3);
-        }
-
-        button:disabled {
-          opacity: 0.5;
-          cursor: not-allowed;
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         @keyframes fadeIn {
@@ -297,31 +446,27 @@ export default function JarApp() {
           to { opacity: 1; transform: translateY(0); }
         }
 
+        @keyframes slideIn {
+          from { opacity: 0; transform: translateX(400px); }
+          to { opacity: 1; transform: translateX(0); }
+        }
+
         .fade-in {
-          animation: fadeIn 0.4s ease-out;
+          animation: fadeIn 0.6s ease-out;
         }
       `}</style>
 
+      <FogOverlay />
+      <WisteriaVineLeft />
+      <WisteriaVineRight />
+
       {view === 'landing' && (
-        <div style={styles.landing}>
+        <div style={styles.landing} className="fade-in">
           <div style={styles.landingContent}>
-            <h1 style={styles.title}>The Wishing Jar</h1>
-            <p style={styles.subtitle}>Ask questions. Discover answers. Get to know someone.</p>
-            <button onClick={() => setView('auth')} style={styles.primaryButton}>
-              Begin
+            <h1 style={styles.title}>I'M CURIOUS...</h1>
+            <button onClick={() => setView('auth')} style={styles.heroButton}>
+              Enter the Collective Vault
             </button>
-          </div>
-          <div style={styles.botanicalAccent}>
-            <svg width="120" height="120" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <circle cx="60" cy="30" r="8" fill="#b4a7d6" opacity="0.8"/>
-              <circle cx="40" cy="50" r="8" fill="#b4a7d6" opacity="0.8"/>
-              <circle cx="80" cy="50" r="8" fill="#b4a7d6" opacity="0.8"/>
-              <circle cx="30" cy="70" r="8" fill="#b4a7d6" opacity="0.8"/>
-              <circle cx="90" cy="70" r="8" fill="#b4a7d6" opacity="0.8"/>
-              <circle cx="60" cy="90" r="8" fill="#b4a7d6" opacity="0.8"/>
-              <path d="M60 30 Q50 50 40 70 Q30 85 35 100" stroke="#7a8e6f" strokeWidth="2" fill="none" opacity="0.5"/>
-              <path d="M60 30 Q70 50 80 70 Q90 85 85 100" stroke="#7a8e6f" strokeWidth="2" fill="none" opacity="0.5"/>
-            </svg>
           </div>
         </div>
       )}
@@ -329,8 +474,8 @@ export default function JarApp() {
       {view === 'auth' && (
         <div style={styles.authContainer}>
           <div style={styles.authBox}>
-            <h2 style={{ ...styles.heading, marginBottom: '24px' }}>
-              {authMode === 'login' ? 'Welcome Back' : 'Create Account'}
+            <h2 style={{ ...styles.heading, marginBottom: '32px', textAlign: 'center', fontSize: '32px' }}>
+              {authMode === 'login' ? 'Return' : 'Begin'}
             </h2>
 
             <form onSubmit={authMode === 'login' ? handleLogin : handleSignUp} style={styles.form}>
@@ -341,6 +486,7 @@ export default function JarApp() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
+                  placeholder="your@email.com"
                   style={styles.input}
                 />
               </div>
@@ -352,6 +498,7 @@ export default function JarApp() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
+                  placeholder="••••••••"
                   style={styles.input}
                 />
               </div>
@@ -364,22 +511,23 @@ export default function JarApp() {
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
                     required
+                    placeholder="Your name"
                     style={styles.input}
                   />
                 </div>
               )}
 
               <button type="submit" disabled={loading} style={styles.primaryButton}>
-                {loading ? 'Loading...' : authMode === 'login' ? 'Login' : 'Sign Up'}
+                {loading ? 'Loading...' : authMode === 'login' ? 'Enter' : 'Begin'}
               </button>
             </form>
 
-            <div style={{ textAlign: 'center', marginTop: '20px' }}>
+            <div style={{ textAlign: 'center', marginTop: '24px' }}>
               <button
                 onClick={() => setAuthMode(authMode === 'login' ? 'signup' : 'login')}
-                style={styles.secondaryButton}
+                style={styles.toggleButton}
               >
-                {authMode === 'login' ? 'Need an account?' : 'Already have an account?'}
+                {authMode === 'login' ? 'Create an account' : 'Already have one?'}
               </button>
             </div>
           </div>
@@ -388,11 +536,9 @@ export default function JarApp() {
 
       {view === 'jar-select' && (
         <div style={styles.jarSelectContainer}>
-          <div style={styles.header}>
-            <h2 style={styles.heading}>Your Jars</h2>
-            <span style={styles.username}>
-              <HydrangeaIcon /> {currentUser?.username}
-            </span>
+          <div style={styles.jarHeader}>
+            <h2 style={styles.heading}>Your Vaults</h2>
+            <span style={styles.username}>{currentUser?.username}</span>
           </div>
 
           <div style={styles.jarsGrid}>
@@ -403,25 +549,22 @@ export default function JarApp() {
                 style={styles.jarCard}
               >
                 <h3 style={styles.jarTitle}>{jar.name}</h3>
-                <p style={styles.jarMeta}>Created by {jar.created_by === currentUser.id ? 'you' : 'someone'}</p>
-                <button style={{ ...styles.primaryButton, width: '100%', marginTop: '12px' }}>
-                  Enter
-                </button>
+                <p style={styles.jarMeta}>Created by {jar.created_by === currentUser.id ? 'you' : 'another'}</p>
               </div>
             ))}
 
             <div style={styles.createJarCard}>
               <form onSubmit={createJar} style={styles.form}>
-                <h3 style={{ ...styles.jarTitle, marginBottom: '12px' }}>Create New Jar</h3>
+                <h3 style={{ ...styles.jarTitle, marginBottom: '16px' }}>+ Create Vault</h3>
                 <input
                   type="text"
-                  placeholder="Jar name..."
+                  placeholder="Name your vault..."
                   value={jarName}
                   onChange={(e) => setJarName(e.target.value)}
                   required
-                  style={styles.input}
+                  style={{ ...styles.input, marginBottom: '12px' }}
                 />
-                <button type="submit" disabled={loading} style={{ ...styles.primaryButton, width: '100%', marginTop: '12px' }}>
+                <button type="submit" disabled={loading} style={{ ...styles.primaryButton, width: '100%' }}>
                   Create
                 </button>
               </form>
@@ -429,52 +572,121 @@ export default function JarApp() {
           </div>
 
           <button onClick={() => supabase.auth.signOut().then(() => setView('landing'))} style={styles.logout}>
-            Sign Out
+            Return to Sanctuary
           </button>
         </div>
       )}
 
       {view === 'jar-main' && activeJar && (
         <div style={styles.jarMainContainer}>
-          <div style={styles.jarHeader}>
+          <div style={styles.jarMainHeader}>
             <button onClick={() => setView('jar-select')} style={styles.backButton}>← Back</button>
-            <h2 style={styles.heading}>{activeJar.name}</h2>
-            <div style={styles.navTabs}>
-              {/* Tab navigation could go here */}
-            </div>
+            <h2 style={styles.heading}>I'M CURIOUS...</h2>
           </div>
 
-          <div style={styles.mainContent}>
-            {/* Left: Questions & Answers */}
-            <div style={styles.questionSection}>
-              <h3 style={{ ...styles.sectionTitle, marginBottom: '20px' }}>
-                <HydrangeaIcon /> Add a Question
-              </h3>
+          {/* Current Question - Drawing from the Mist */}
+          <div style={styles.mainQuestionSection}>
+            {currentQuestion ? (
+              <>
+                <button
+                  onClick={() => loadRandomQuestion(activeJar.id, currentUser.id)}
+                  style={styles.drawButton}
+                >
+                  ⋮ Draw A Question ⋮
+                </button>
+
+                <div style={styles.questionBoxContainer}>
+                  <p style={styles.questionText}>{currentQuestion.text}</p>
+
+                  <form onSubmit={submitAnswer} style={styles.form}>
+                    <textarea
+                      placeholder="Add a question to the vault..."
+                      value={answerText}
+                      onChange={(e) => setAnswerText(e.target.value)}
+                      required
+                      style={{ ...styles.input, minHeight: '100px', resize: 'vertical' }}
+                    />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px', color: '#8A8E9E', fontSize: '13px' }}>
+                      <input
+                        type="checkbox"
+                        id="tagback-checkbox"
+                        checked={tagBack}
+                        onChange={(e) => setTagBack(e.target.checked)}
+                        style={{ cursor: 'pointer' }}
+                      />
+                      <label htmlFor="tagback-checkbox" style={{ cursor: 'pointer', margin: 0 }}>Tag Back?</label>
+                    </div>
+                    <div style={styles.buttonRow}>
+                      <button type="submit" disabled={loading} style={{ ...styles.primaryButton, flex: 1 }}>
+                        Submit Answer
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </>
+            ) : (
+              <div style={styles.emptyQuestionBox}>
+                <p style={styles.emptyState}>No more questions in the mist...</p>
+                <button
+                  onClick={() => loadRandomQuestion(activeJar.id, currentUser.id)}
+                  style={styles.drawButton}
+                >
+                  ⋮ Draw A Question ⋮
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Tab Navigation */}
+          <div style={styles.tabNav}>
+            <button
+              onClick={() => setActiveTab('questions')}
+              style={{
+                ...styles.tabButton,
+                ...(activeTab === 'questions' ? styles.tabButtonActive : {}),
+              }}
+            >
+              ADD QUESTION
+            </button>
+            <button
+              onClick={() => setActiveTab('memories')}
+              style={{
+                ...styles.tabButton,
+                ...(activeTab === 'memories' ? styles.tabButtonActive : {}),
+              }}
+            >
+              Past Answers
+            </button>
+          </div>
+
+          {/* Tab Content */}
+          {activeTab === 'questions' && (
+            <div style={styles.tabContent}>
               <form onSubmit={addQuestion} style={styles.form}>
                 <textarea
-                  placeholder="What do you want to know?"
+                  placeholder="Who are you really..?"
                   value={questionText}
                   onChange={(e) => setQuestionText(e.target.value)}
                   required
-                  style={{ ...styles.input, minHeight: '80px', resize: 'none' }}
+                  style={{ ...styles.input, minHeight: '100px', resize: 'vertical' }}
                 />
-                <button type="submit" disabled={loading} style={{ ...styles.primaryButton, width: '100%', marginTop: '12px' }}>
-                  Add Question
+                <button type="submit" disabled={loading} style={{ ...styles.primaryButton, width: '100%' }}>
+                  Cast into Mist
                 </button>
               </form>
+            </div>
+          )}
 
-              <div style={{ ...styles.divider, margin: '32px 0' }}>
-                <span style={styles.dividerText}>Your Answers</span>
-              </div>
-
+          {activeTab === 'memories' && (
+            <div style={styles.tabContent}>
               <div style={styles.answersList}>
                 {userAnswers.length === 0 ? (
-                  <p style={styles.emptyState}>No answers yet. Answer a question to get started!</p>
+                  <p style={styles.emptyState}>No memories yet. Answer a question to start.</p>
                 ) : (
                   userAnswers.map((answer, idx) => (
                     <div key={idx} style={styles.answerCard}>
                       <p style={styles.answerQuestion}>Q: {answer.questions.text}</p>
-                      <p style={styles.answerText}>A: {answer.answer_text}</p>
+                      <p style={styles.answerText}>{answer.answer_text}</p>
                       <p style={styles.answerDate}>
                         {new Date(answer.created_at).toLocaleDateString()}
                       </p>
@@ -483,50 +695,16 @@ export default function JarApp() {
                 )}
               </div>
             </div>
-
-            {/* Right: Current Question */}
-            <div style={styles.currentQuestionSection}>
-              {currentQuestion ? (
-                <div style={styles.questionBox}>
-                  <div style={styles.questionHeader}>
-                    <h3 style={styles.sectionTitle}>Your Turn</h3>
-                    <HydrangeaIcon />
-                  </div>
-                  <p style={styles.questionDisplay}>{currentQuestion.text}</p>
-
-                  <form onSubmit={submitAnswer} style={styles.form}>
-                    <textarea
-                      placeholder="Your answer..."
-                      value={answerText}
-                      onChange={(e) => setAnswerText(e.target.value)}
-                      required
-                      style={{ ...styles.input, minHeight: '100px', resize: 'none' }}
-                    />
-                    <button type="submit" disabled={loading} style={{ ...styles.primaryButton, width: '100%', marginTop: '12px' }}>
-                      Submit Answer
-                    </button>
-                  </form>
-
-                  <button onClick={askBack} style={{ ...styles.secondaryButton, width: '100%', marginTop: '12px' }}>
-                    Ask it Back
-                  </button>
-
-                  <button
-                    onClick={() => loadRandomQuestion(activeJar.id, currentUser.id)}
-                    style={{ ...styles.skipButton, width: '100%', marginTop: '8px' }}
-                  >
-                    Skip
-                  </button>
-                </div>
-              ) : (
-                <div style={styles.emptyQuestionBox}>
-                  <p style={styles.emptyState}>No more questions right now!</p>
-                  <p style={styles.emptySubtext}>Add one or wait for others to ask.</p>
-                </div>
-              )}
-            </div>
-          </div>
+          )}
         </div>
+      )}
+
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onDismiss={() => setToast(null)}
+        />
       )}
     </div>
   );
@@ -535,8 +713,10 @@ export default function JarApp() {
 const styles = {
   container: {
     minHeight: '100vh',
-    background: '#1a1a2e',
-    color: '#f5f3f0',
+    background: 'linear-gradient(135deg, #0a0a12 0%, #1a1428 50%, #0f0f18 100%)',
+    color: '#E8EAEE',
+    position: 'relative',
+    overflow: 'hidden',
   },
 
   // Landing
@@ -544,47 +724,43 @@ const styles = {
     minHeight: '100vh',
     display: 'flex',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     padding: '40px',
-    maxWidth: '1200px',
-    margin: '0 auto',
+    position: 'relative',
+    zIndex: 2,
   },
   landingContent: {
-    flex: 1,
-    maxWidth: '500px',
+    textAlign: 'center',
+    maxWidth: '600px',
   },
   title: {
     fontSize: '64px',
-    fontWeight: 700,
+    fontWeight: 300,
     marginBottom: '16px',
-    background: 'linear-gradient(135deg, #b4a7d6, #9b8fa3)',
-    WebkitBackgroundClip: 'text',
-    WebkitTextFillColor: 'transparent',
-    fontFamily: 'Georgia, serif',
+    letterSpacing: '4px',
+    fontFamily: "'Cormorant Garamond', Georgia, serif",
+    color: '#E8EAEE',
   },
   subtitle: {
-    fontSize: '20px',
-    marginBottom: '32px',
-    color: '#c0b5d8',
-    fontWeight: 300,
+    display: 'none',
   },
-  primaryButton: {
-    background: 'linear-gradient(135deg, #b4a7d6 0%, #9b8fa3 100%)',
-    border: 'none',
-    padding: '16px 40px',
-    borderRadius: '8px',
-    color: '#1a1a2e',
+  landingDescription: {
+    display: 'none',
+  },
+  heroButton: {
+    background: 'rgba(97, 55, 117, 0.2)',
+    border: '1px solid rgba(180, 161, 196, 0.5)',
+    padding: '14px 40px',
+    borderRadius: '24px',
+    color: '#B4A1C4',
     cursor: 'pointer',
-    fontSize: '18px',
-    fontWeight: 600,
-    transition: 'all 0.3s',
-    boxShadow: '0 4px 15px rgba(180, 167, 214, 0.2)',
-  },
-  botanicalAccent: {
-    flex: 1,
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
+    fontSize: '15px',
+    fontWeight: 400,
+    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+    fontFamily: "'Cormorant Garamond', Georgia, serif",
+    letterSpacing: '0.5px',
+    backdropFilter: 'blur(8px)',
+    boxShadow: '0 0 30px rgba(97, 55, 117, 0.2)',
   },
 
   // Auth
@@ -594,15 +770,18 @@ const styles = {
     alignItems: 'center',
     justifyContent: 'center',
     padding: '20px',
+    position: 'relative',
+    zIndex: 2,
   },
   authBox: {
-    background: 'rgba(180, 167, 214, 0.08)',
-    border: '1px solid rgba(180, 167, 214, 0.2)',
-    borderRadius: '16px',
+    background: 'rgba(26, 27, 36, 0.7)',
+    border: '1px solid rgba(97, 55, 117, 0.3)',
+    borderRadius: '20px',
     padding: '48px',
-    maxWidth: '400px',
+    maxWidth: '420px',
     width: '100%',
-    boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
+    boxShadow: '0 8px 48px rgba(0, 0, 0, 0.4), inset 0 0 40px rgba(97, 55, 117, 0.08)',
+    backdropFilter: 'blur(16px)',
   },
   form: {
     display: 'flex',
@@ -615,26 +794,54 @@ const styles = {
     gap: '8px',
   },
   label: {
-    fontSize: '14px',
-    fontWeight: 500,
-    color: '#c0b5d8',
+    fontSize: '12px',
+    fontWeight: 400,
+    color: '#8A8E9E',
+    textTransform: 'uppercase',
+    letterSpacing: '1px',
   },
   input: {
-    background: 'rgba(255, 255, 255, 0.08)',
-    border: '1px solid rgba(180, 167, 214, 0.3)',
-    padding: '12px',
-    borderRadius: '8px',
-    color: '#f5f3f0',
+    background: 'rgba(26, 27, 36, 0.8)',
+    border: '1px solid rgba(97, 55, 117, 0.4)',
+    padding: '14px 16px',
+    borderRadius: '12px',
+    color: '#E8EAEE',
     fontSize: '14px',
+  },
+  primaryButton: {
+    background: 'rgba(97, 55, 117, 0.2)',
+    border: '1px solid rgba(180, 161, 196, 0.4)',
+    padding: '12px 28px',
+    borderRadius: '24px',
+    color: '#B4A1C4',
+    cursor: 'pointer',
+    fontSize: '14px',
+    fontWeight: 400,
+    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+    fontFamily: "'Cormorant Garamond', Georgia, serif",
+    backdropFilter: 'blur(8px)',
   },
   secondaryButton: {
     background: 'transparent',
-    border: '1px solid rgba(180, 167, 214, 0.4)',
-    padding: '12px 24px',
-    borderRadius: '8px',
-    color: '#b4a7d6',
+    border: '1px solid rgba(97, 55, 117, 0.3)',
+    padding: '12px 28px',
+    borderRadius: '24px',
+    color: '#8A8E9E',
     cursor: 'pointer',
-    transition: 'all 0.3s',
+    fontSize: '14px',
+    fontWeight: 400,
+    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+    fontFamily: "'Cormorant Garamond', Georgia, serif",
+  },
+  toggleButton: {
+    background: 'transparent',
+    border: 'none',
+    padding: '8px 16px',
+    color: '#8A8E9E',
+    cursor: 'pointer',
+    fontSize: '14px',
+    fontFamily: "'Cormorant Garamond', Georgia, serif",
+    transition: 'color 0.3s',
   },
 
   // Jar Select
@@ -642,199 +849,207 @@ const styles = {
     maxWidth: '1200px',
     margin: '0 auto',
     padding: '40px',
+    position: 'relative',
+    zIndex: 2,
   },
-  header: {
+  jarHeader: {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: '40px',
-    paddingBottom: '20px',
-    borderBottom: '1px solid rgba(180, 167, 214, 0.2)',
+    marginBottom: '48px',
+    paddingBottom: '24px',
+    borderBottom: '1px solid rgba(97, 55, 117, 0.2)',
   },
   username: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-    fontSize: '16px',
-    color: '#c0b5d8',
+    fontSize: '14px',
+    color: '#8A8E9E',
+    fontWeight: 300,
   },
   heading: {
-    fontSize: '40px',
-    fontWeight: 700,
-    fontFamily: 'Georgia, serif',
-    marginBottom: '20px',
+    fontSize: '48px',
+    fontWeight: 300,
+    fontFamily: "'Cormorant Garamond', Georgia, serif",
+    letterSpacing: '1px',
+    color: '#E8EAEE',
   },
   jarsGrid: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
-    gap: '24px',
+    gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+    gap: '20px',
     marginBottom: '40px',
   },
   jarCard: {
-    background: 'rgba(180, 167, 214, 0.08)',
-    border: '1px solid rgba(180, 167, 214, 0.2)',
-    borderRadius: '12px',
-    padding: '24px',
+    background: 'rgba(97, 55, 117, 0.08)',
+    border: '1px solid rgba(97, 55, 117, 0.2)',
+    borderRadius: '16px',
+    padding: '28px',
     cursor: 'pointer',
-    transition: 'all 0.3s',
-    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)',
+    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+    backdropFilter: 'blur(8px)',
   },
   jarTitle: {
-    fontSize: '20px',
-    fontWeight: 600,
+    fontSize: '18px',
+    fontWeight: 400,
     marginBottom: '8px',
-    color: '#b4a7d6',
+    color: '#B4A1C4',
+    fontFamily: "'Cormorant Garamond', Georgia, serif",
   },
   jarMeta: {
-    fontSize: '14px',
-    color: '#9b8fa3',
+    fontSize: '13px',
+    color: '#8A8E9E',
   },
   createJarCard: {
-    background: 'rgba(122, 142, 111, 0.08)',
-    border: '2px dashed rgba(122, 142, 111, 0.3)',
-    borderRadius: '12px',
-    padding: '24px',
+    background: 'rgba(97, 55, 117, 0.08)',
+    border: '1px dashed rgba(97, 55, 117, 0.3)',
+    borderRadius: '16px',
+    padding: '28px',
+    backdropFilter: 'blur(8px)',
   },
   logout: {
     background: 'transparent',
-    border: '1px solid rgba(255, 255, 255, 0.2)',
+    border: '1px solid rgba(97, 55, 117, 0.2)',
     padding: '12px 24px',
-    borderRadius: '8px',
-    color: '#f5f3f0',
+    borderRadius: '20px',
+    color: '#8A8E9E',
     cursor: 'pointer',
     fontSize: '14px',
+    fontFamily: "'Cormorant Garamond', Georgia, serif",
   },
 
   // Jar Main
   jarMainContainer: {
-    maxWidth: '1400px',
+    maxWidth: '800px',
     margin: '0 auto',
-    padding: '40px',
+    padding: '40px 20px',
+    position: 'relative',
+    zIndex: 2,
   },
-  jarHeader: {
+  jarMainHeader: {
     display: 'flex',
     alignItems: 'center',
-    gap: '20px',
-    marginBottom: '40px',
-    paddingBottom: '20px',
-    borderBottom: '1px solid rgba(180, 167, 214, 0.2)',
+    gap: '16px',
+    marginBottom: '48px',
   },
   backButton: {
     background: 'transparent',
-    border: '1px solid rgba(180, 167, 214, 0.4)',
-    padding: '8px 16px',
-    borderRadius: '6px',
-    color: '#b4a7d6',
+    border: '1px solid rgba(97, 55, 117, 0.3)',
+    padding: '10px 16px',
+    borderRadius: '8px',
+    color: '#8A8E9E',
     cursor: 'pointer',
-    fontSize: '14px',
+    fontSize: '13px',
+    fontFamily: "'Cormorant Garamond', Georgia, serif",
+    transition: 'all 0.3s',
   },
-  mainContent: {
-    display: 'grid',
-    gridTemplateColumns: '1fr 1fr',
-    gap: '40px',
+  mainQuestionSection: {
+    marginBottom: '40px',
   },
-  questionSection: {
-    background: 'rgba(180, 167, 214, 0.05)',
-    border: '1px solid rgba(180, 167, 214, 0.15)',
-    borderRadius: '12px',
-    padding: '32px',
-  },
-  currentQuestionSection: {
-    position: 'sticky',
-    top: '40px',
-    height: 'fit-content',
-  },
-  sectionTitle: {
-    fontSize: '18px',
-    fontWeight: 600,
-    color: '#b4a7d6',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-    fontFamily: 'Georgia, serif',
-  },
-  divider: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '12px',
-    color: '#9b8fa3',
-  },
-  dividerText: {
-    fontSize: '12px',
-    textTransform: 'uppercase',
+  drawButton: {
+    width: '100%',
+    background: 'rgba(97, 55, 117, 0.2)',
+    border: '1px solid rgba(180, 161, 196, 0.4)',
+    padding: '16px',
+    borderRadius: '24px',
+    color: '#B4A1C4',
+    cursor: 'pointer',
+    fontSize: '15px',
+    fontWeight: 400,
+    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+    fontFamily: "'Cormorant Garamond', Georgia, serif",
     letterSpacing: '1px',
+    backdropFilter: 'blur(8px)',
+    marginBottom: '24px',
+    boxShadow: '0 0 30px rgba(97, 55, 117, 0.15)',
+  },
+  questionBoxContainer: {
+    background: 'rgba(26, 27, 36, 0.6)',
+    border: '1px solid rgba(97, 55, 117, 0.25)',
+    borderRadius: '16px',
+    padding: '32px',
+    backdropFilter: 'blur(12px)',
+  },
+  questionText: {
+    fontSize: '18px',
+    fontWeight: 300,
+    marginBottom: '28px',
+    lineHeight: '1.8',
+    color: '#E8EAEE',
+    fontStyle: 'italic',
+    letterSpacing: '0.3px',
+  },
+  buttonRow: {
+    display: 'flex',
+    gap: '12px',
+    marginTop: '16px',
+  },
+  emptyQuestionBox: {
+    background: 'rgba(26, 27, 36, 0.5)',
+    border: '1px solid rgba(97, 55, 117, 0.2)',
+    borderRadius: '16px',
+    padding: '48px 32px',
+    textAlign: 'center',
+    backdropFilter: 'blur(8px)',
+  },
+  emptyState: {
+    fontSize: '16px',
+    color: '#B4A1C4',
+    marginBottom: '24px',
+    fontWeight: 300,
+  },
+  tabNav: {
+    display: 'flex',
+    borderBottom: '1px solid rgba(97, 55, 117, 0.2)',
+    marginBottom: '24px',
+    gap: '0',
+  },
+  tabButton: {
+    flex: 1,
+    background: 'transparent',
+    border: 'none',
+    padding: '16px',
+    color: '#8A8E9E',
+    cursor: 'pointer',
+    fontSize: '12px',
+    fontWeight: 400,
+    fontFamily: "'Cormorant Garamond', Georgia, serif",
+    letterSpacing: '1px',
+    textTransform: 'uppercase',
+    borderBottom: '2px solid transparent',
+    transition: 'all 0.3s',
+  },
+  tabButtonActive: {
+    color: '#B4A1C4',
+    borderBottomColor: '#B4A1C4',
+  },
+  tabContent: {
+    animation: 'fadeIn 0.3s ease-out',
   },
   answersList: {
     display: 'flex',
     flexDirection: 'column',
-    gap: '16px',
+    gap: '12px',
   },
   answerCard: {
-    background: 'rgba(255, 255, 255, 0.04)',
-    border: '1px solid rgba(180, 167, 214, 0.1)',
-    borderRadius: '8px',
+    background: 'rgba(97, 55, 117, 0.08)',
+    border: '1px solid rgba(97, 55, 117, 0.15)',
+    borderRadius: '12px',
     padding: '16px',
     fontSize: '14px',
   },
   answerQuestion: {
-    color: '#c0b5d8',
+    color: '#B4A1C4',
     marginBottom: '8px',
-    fontWeight: 500,
+    fontWeight: 400,
+    fontSize: '13px',
   },
   answerText: {
-    color: '#f5f3f0',
-    lineHeight: '1.5',
+    color: '#E8EAEE',
+    lineHeight: '1.6',
     marginBottom: '8px',
+    fontWeight: 300,
   },
   answerDate: {
     fontSize: '12px',
-    color: '#7a8e6f',
-  },
-  questionBox: {
-    background: 'linear-gradient(135deg, rgba(180, 167, 214, 0.15), rgba(155, 143, 163, 0.1))',
-    border: '1px solid rgba(180, 167, 214, 0.3)',
-    borderRadius: '12px',
-    padding: '32px',
-    boxShadow: '0 8px 32px rgba(180, 167, 214, 0.1)',
-  },
-  questionHeader: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: '20px',
-  },
-  questionDisplay: {
-    fontSize: '20px',
-    fontWeight: 500,
-    marginBottom: '24px',
-    lineHeight: '1.6',
-    color: '#f5f3f0',
-    fontStyle: 'italic',
-  },
-  skipButton: {
-    background: 'transparent',
-    border: '1px solid rgba(180, 167, 214, 0.3)',
-    padding: '12px 24px',
-    borderRadius: '8px',
-    color: '#9b8fa3',
-    cursor: 'pointer',
-    fontSize: '14px',
-    transition: 'all 0.3s',
-  },
-  emptyQuestionBox: {
-    background: 'rgba(122, 142, 111, 0.08)',
-    border: '1px solid rgba(122, 142, 111, 0.2)',
-    borderRadius: '12px',
-    padding: '48px 32px',
-    textAlign: 'center',
-  },
-  emptyState: {
-    fontSize: '18px',
-    color: '#c0b5d8',
-    marginBottom: '8px',
-  },
-  emptySubtext: {
-    fontSize: '14px',
-    color: '#7a8e6f',
+    color: '#8A8E9E',
   },
 };
