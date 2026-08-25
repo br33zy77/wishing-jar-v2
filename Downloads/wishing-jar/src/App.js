@@ -73,8 +73,11 @@ const WisteriaVineLeft = () => (
     }}
     preserveAspectRatio="none"
   >
+    {/* Main vine */}
     <path d="M80 0 Q70 100 60 200 Q65 300 55 400 Q70 500 50 600 Q75 700 60 800 Q65 900 70 1000"
           stroke="#613775" strokeWidth="1.5" opacity="0.4" />
+
+    {/* Flowers along vine */}
     {[0, 80, 160, 240, 320, 400, 480, 560, 640, 720, 800, 880].map((y, i) => (
       <g key={`left-${i}`}>
         <circle cx="80" cy={y} r="10" fill="#613775" opacity={0.4 + (i % 3) * 0.2} filter="url(#glow)" />
@@ -83,6 +86,7 @@ const WisteriaVineLeft = () => (
         <circle cx="40" cy={y + 60} r="8" fill="#9B7FB1" opacity={0.3 + (i % 2) * 0.15} filter="url(#glow)" />
       </g>
     ))}
+
     <defs>
       <filter id="glow">
         <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
@@ -112,8 +116,11 @@ const WisteriaVineRight = () => (
     }}
     preserveAspectRatio="none"
   >
+    {/* Main vine */}
     <path d="M40 0 Q50 100 60 200 Q55 300 65 400 Q50 500 70 600 Q45 700 60 800 Q55 900 50 1000"
           stroke="#613775" strokeWidth="1.5" opacity="0.4" />
+
+    {/* Flowers along vine */}
     {[0, 80, 160, 240, 320, 400, 480, 560, 640, 720, 800, 880].map((y, i) => (
       <g key={`right-${i}`}>
         <circle cx="40" cy={y} r="10" fill="#613775" opacity={0.4 + (i % 3) * 0.2} filter="url(#glow)" />
@@ -122,6 +129,7 @@ const WisteriaVineRight = () => (
         <circle cx="80" cy={y + 60} r="8" fill="#9B7FB1" opacity={0.3 + (i % 2) * 0.15} filter="url(#glow)" />
       </g>
     ))}
+
     <defs>
       <filter id="glow">
         <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
@@ -132,6 +140,59 @@ const WisteriaVineRight = () => (
       </filter>
     </defs>
   </svg>
+);
+
+// Animated Mist Component
+const AnimatedMist = () => (
+  <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, pointerEvents: 'none', zIndex: 0, overflow: 'hidden' }}>
+    {/* Mist Layer 1 - Slow drift */}
+    <div style={{
+      position: 'absolute',
+      top: '-20%',
+      left: '-20%',
+      width: '140%',
+      height: '140%',
+      background: 'radial-gradient(ellipse 600px 400px at 30% 20%, rgba(97, 55, 117, 0.08) 0%, transparent 70%)',
+      animation: 'mistDrift1 20s ease-in-out infinite',
+      filter: 'blur(60px)',
+    }} />
+
+    {/* Mist Layer 2 - Medium drift */}
+    <div style={{
+      position: 'absolute',
+      top: '-10%',
+      right: '-20%',
+      width: '150%',
+      height: '150%',
+      background: 'radial-gradient(ellipse 700px 350px at 70% 60%, rgba(139, 107, 159, 0.06) 0%, transparent 65%)',
+      animation: 'mistDrift2 25s ease-in-out infinite',
+      filter: 'blur(70px)',
+    }} />
+
+    {/* Mist Layer 3 - Fast drift */}
+    <div style={{
+      position: 'absolute',
+      bottom: '-15%',
+      left: '10%',
+      width: '120%',
+      height: '120%',
+      background: 'radial-gradient(ellipse 500px 450px at 40% 80%, rgba(122, 95, 135, 0.07) 0%, transparent 60%)',
+      animation: 'mistDrift3 30s ease-in-out infinite',
+      filter: 'blur(80px)',
+    }} />
+
+    {/* Mist Layer 4 - Upper drift */}
+    <div style={{
+      position: 'absolute',
+      top: '5%',
+      left: '5%',
+      width: '130%',
+      height: '130%',
+      background: 'radial-gradient(ellipse 550px 500px at 50% 30%, rgba(155, 127, 177, 0.05) 0%, transparent 70%)',
+      animation: 'mistDrift4 28s ease-in-out infinite',
+      filter: 'blur(65px)',
+    }} />
+  </div>
 );
 
 // Fog Overlay Component
@@ -173,54 +234,21 @@ export default function JarApp() {
   const [tagBack, setTagBack] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [invitationLink, setInvitationLink] = useState(null);
+  const [pendingInvite, setPendingInvite] = useState(null);
 
   const showToast = (message, type = 'success') => {
     setToast({ message, type });
   };
 
-  const loadJars = async (userId) => {
-    try {
-      const { data, error } = await supabase
-        .from('jar_members')
-        .select('jar_id, jars(id, name, created_by)')
-        .eq('user_id', userId);
-      if (error) throw error;
-      setJars(data.map(jm => jm.jars));
-    } catch (err) {
-      console.error('Failed to load jars:', err);
-    }
-  };
-
-  const loadRandomQuestion = async (jarId, userId) => {
-    try {
-      const { data, error } = await supabase
-        .rpc('get_random_question', { jar_id: jarId, exclude_user_id: userId });
-      if (error) throw error;
-      setCurrentQuestion(data);
-    } catch (err) {
-      console.error('Failed to load question:', err);
-      setCurrentQuestion(null);
-    }
-  };
-
-  const loadUserAnswers = async (userId) => {
-    try {
-      const { data, error } = await supabase
-        .from('answers')
-        .select('question_id, questions(text), answer_text, created_at')
-        .eq('user_id', userId);
-      if (error) throw error;
-      setUserAnswers(data || []);
-    } catch (err) {
-      console.error('Failed to load answers:', err);
-    }
-  };
-
   // Check auth on mount and handle invitations
   useEffect(() => {
     const checkAuth = async () => {
+      // Check for invitation code in URL
       const params = new URLSearchParams(window.location.search);
       const inviteCode = params.get('invite');
+      if (inviteCode) {
+        setPendingInvite(inviteCode);
+      }
 
       const { data } = await supabase.auth.getSession();
       if (data.session) {
@@ -232,54 +260,9 @@ export default function JarApp() {
           .single();
         setCurrentUser({ id: user.id, email: user.email, username: profile?.username });
 
+        // If there's a pending invite, process it
         if (inviteCode) {
-          try {
-            const { data: invitation, error } = await supabase
-              .from('vault_invitations')
-              .select('vault_id, expires_at')
-              .eq('invitation_code', inviteCode)
-              .single();
-
-            if (error || !invitation) {
-              showToast('Invalid or expired invitation link.', 'error');
-              setView('jar-select');
-              loadJars(user.id);
-              return;
-            }
-
-            if (new Date(invitation.expires_at) < new Date()) {
-              showToast('This invitation has expired.', 'error');
-              setView('jar-select');
-              loadJars(user.id);
-              return;
-            }
-
-            const { error: addError } = await supabase
-              .from('jar_members')
-              .insert([{ jar_id: invitation.vault_id, user_id: user.id }]);
-
-            if (addError && !addError.message.includes('duplicate')) {
-              throw addError;
-            }
-
-            const { data: jar } = await supabase
-              .from('jars')
-              .select('*')
-              .eq('id', invitation.vault_id)
-              .single();
-
-            setActiveJar(jar);
-            setView('jar-main');
-            setActiveTab('questions');
-            await loadRandomQuestion(jar.id, user.id);
-            await loadUserAnswers(user.id);
-            showToast('Welcome to the vault!', 'success');
-            window.history.replaceState({}, document.title, window.location.pathname);
-          } catch (err) {
-            console.error('Invitation error:', err);
-            setView('jar-select');
-            loadJars(user.id);
-          }
+          await processInvitation(inviteCode, user.id);
         } else {
           setView('jar-select');
           loadJars(user.id);
@@ -341,6 +324,19 @@ export default function JarApp() {
     }
   };
 
+  const loadJars = async (userId) => {
+    try {
+      const { data, error } = await supabase
+        .from('jar_members')
+        .select('jar_id, jars(id, name, created_by)')
+        .eq('user_id', userId);
+      if (error) throw error;
+      setJars(data.map(jm => jm.jars));
+    } catch (err) {
+      console.error('Failed to load jars:', err);
+    }
+  };
+
   const createJar = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -366,52 +362,37 @@ export default function JarApp() {
     }
   };
 
-  const deleteJar = async (jarId, jarName) => {
-    if (!window.confirm(`Are you sure you want to delete "${jarName}"? This cannot be undone.`)) {
-      return;
-    }
-
-    setLoading(true);
-    try {
-      // Delete answers
-      const { data: questions } = await supabase
-        .from('questions')
-        .select('id')
-        .eq('jar_id', jarId);
-
-      if (questions && questions.length > 0) {
-        const questionIds = questions.map(q => q.id);
-        await supabase.from('answers').delete().in('question_id', questionIds);
-      }
-
-      // Delete questions
-      await supabase.from('questions').delete().eq('jar_id', jarId);
-
-      // Delete members
-      await supabase.from('jar_members').delete().eq('jar_id', jarId);
-
-      // Delete invitations
-      await supabase.from('vault_invitations').delete().eq('vault_id', jarId);
-
-      // Delete jar
-      const { error } = await supabase.from('jars').delete().eq('id', jarId);
-      if (error) throw error;
-
-      setJars(jars.filter(j => j.id !== jarId));
-      showToast(`Vault "${jarName}" has been deleted.`, 'success');
-    } catch (err) {
-      showToast(`Failed to delete vault: ${err.message}`, 'error');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const selectJar = async (jar) => {
     setActiveJar(jar);
     setView('jar-main');
     setActiveTab('questions');
     await loadRandomQuestion(jar.id, currentUser.id);
     await loadUserAnswers(currentUser.id);
+  };
+
+  const loadRandomQuestion = async (jarId, userId) => {
+    try {
+      const { data, error } = await supabase
+        .rpc('get_random_question', { jar_id: jarId, exclude_user_id: userId });
+      if (error) throw error;
+      setCurrentQuestion(data);
+    } catch (err) {
+      console.error('Failed to load question:', err);
+      setCurrentQuestion(null);
+    }
+  };
+
+  const loadUserAnswers = async (userId) => {
+    try {
+      const { data, error } = await supabase
+        .from('answers')
+        .select('question_id, questions(text), answer_text, created_at')
+        .eq('user_id', userId);
+      if (error) throw error;
+      setUserAnswers(data || []);
+    } catch (err) {
+      console.error('Failed to load answers:', err);
+    }
   };
 
   const addQuestion = async (e) => {
@@ -442,6 +423,7 @@ export default function JarApp() {
         }
       ]);
 
+      // If Tag Back is checked, ask the question back to the original author
       if (tagBack && currentQuestion) {
         await supabase.from('questions').insert([
           {
@@ -469,8 +451,10 @@ export default function JarApp() {
     if (!activeJar) return;
     setLoading(true);
     try {
+      // Generate a unique code
       const code = Math.random().toString(36).substring(2, 10).toUpperCase();
 
+      // Store invitation in database
       const { error } = await supabase.from('vault_invitations').insert([
         {
           vault_id: activeJar.id,
@@ -481,6 +465,7 @@ export default function JarApp() {
 
       if (error) throw error;
 
+      // Generate shareable link
       const link = `${window.location.origin}?invite=${code}`;
       setInvitationLink(link);
       showToast('Invitation link generated!', 'success');
@@ -488,6 +473,65 @@ export default function JarApp() {
       showToast(`Failed to create invitation: ${err.message}`, 'error');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const processInvitation = async (code, userId) => {
+    try {
+      // Get vault from invitation code
+      const { data: invitation, error } = await supabase
+        .from('vault_invitations')
+        .select('vault_id, expires_at')
+        .eq('invitation_code', code)
+        .single();
+
+      if (error || !invitation) {
+        showToast('Invalid or expired invitation link.', 'error');
+        setView('jar-select');
+        loadJars(userId);
+        return;
+      }
+
+      // Check if expired
+      if (new Date(invitation.expires_at) < new Date()) {
+        showToast('This invitation has expired.', 'error');
+        setView('jar-select');
+        loadJars(userId);
+        return;
+      }
+
+      // Add user to vault
+      const { error: addError } = await supabase
+        .from('jar_members')
+        .insert([{ jar_id: invitation.vault_id, user_id: userId }]);
+
+      if (addError) {
+        // User might already be a member
+        if (!addError.message.includes('duplicate')) {
+          throw addError;
+        }
+      }
+
+      // Load the vault
+      const { data: jar } = await supabase
+        .from('jars')
+        .select('*')
+        .eq('id', invitation.vault_id)
+        .single();
+
+      setActiveJar(jar);
+      setView('jar-main');
+      setActiveTab('questions');
+      await loadRandomQuestion(jar.id, userId);
+      await loadUserAnswers(userId);
+      showToast('Welcome to the vault!', 'success');
+
+      // Clear the URL parameter
+      window.history.replaceState({}, document.title, window.location.pathname);
+    } catch (err) {
+      showToast(`Failed to join vault: ${err.message}`, 'error');
+      setView('jar-select');
+      loadJars(userId);
     }
   };
 
@@ -548,11 +592,40 @@ export default function JarApp() {
           to { opacity: 1; transform: translateX(0); }
         }
 
+        @keyframes mistDrift1 {
+          0%, 100% { transform: translate(0, 0); opacity: 0.6; }
+          25% { transform: translate(30px, -20px); opacity: 0.8; }
+          50% { transform: translate(-20px, 30px); opacity: 0.5; }
+          75% { transform: translate(-40px, -10px); opacity: 0.7; }
+        }
+
+        @keyframes mistDrift2 {
+          0%, 100% { transform: translate(0, 0); opacity: 0.5; }
+          25% { transform: translate(-25px, 40px); opacity: 0.7; }
+          50% { transform: translate(35px, -30px); opacity: 0.4; }
+          75% { transform: translate(20px, 25px); opacity: 0.6; }
+        }
+
+        @keyframes mistDrift3 {
+          0%, 100% { transform: translate(0, 0); opacity: 0.4; }
+          25% { transform: translate(40px, 20px); opacity: 0.6; }
+          50% { transform: translate(-30px, -25px); opacity: 0.5; }
+          75% { transform: translate(-15px, 35px); opacity: 0.7; }
+        }
+
+        @keyframes mistDrift4 {
+          0%, 100% { transform: translate(0, 0); opacity: 0.5; }
+          25% { transform: translate(-35px, -30px); opacity: 0.6; }
+          50% { transform: translate(25px, 20px); opacity: 0.4; }
+          75% { transform: translate(15px, -40px); opacity: 0.7; }
+        }
+
         .fade-in {
           animation: fadeIn 0.6s ease-out;
         }
       `}</style>
 
+      <AnimatedMist />
       <FogOverlay />
       <WisteriaVineLeft />
       <WisteriaVineRight />
@@ -642,32 +715,11 @@ export default function JarApp() {
             {jars.map((jar) => (
               <div
                 key={jar.id}
+                onClick={() => selectJar(jar)}
                 style={styles.jarCard}
               >
-                <div onClick={() => selectJar(jar)} style={{ cursor: 'pointer', marginBottom: '12px' }}>
-                  <h3 style={styles.jarTitle}>{jar.name}</h3>
-                  <p style={styles.jarMeta}>Created by {jar.created_by === currentUser.id ? 'you' : 'another'}</p>
-                </div>
-                {jar.created_by === currentUser.id && (
-                  <button
-                    onClick={() => deleteJar(jar.id, jar.name)}
-                    disabled={loading}
-                    style={{
-                      background: 'rgba(180, 140, 140, 0.2)',
-                      border: '1px solid rgba(180, 140, 140, 0.4)',
-                      color: '#D4A0A0',
-                      padding: '8px 16px',
-                      borderRadius: '6px',
-                      cursor: 'pointer',
-                      fontSize: '12px',
-                      fontFamily: "'Cormorant Garamond', Georgia, serif",
-                      width: '100%',
-                      transition: 'all 0.3s',
-                    }}
-                  >
-                    {loading ? 'Deleting...' : 'Delete Vault'}
-                  </button>
-                )}
+                <h3 style={styles.jarTitle}>{jar.name}</h3>
+                <p style={styles.jarMeta}>Created by {jar.created_by === currentUser.id ? 'you' : 'another'}</p>
               </div>
             ))}
 
@@ -705,6 +757,7 @@ export default function JarApp() {
             </button>
           </div>
 
+          {/* Current Question - Drawing from the Mist */}
           <div style={styles.mainQuestionSection}>
             {currentQuestion ? (
               <>
@@ -757,6 +810,7 @@ export default function JarApp() {
             )}
           </div>
 
+          {/* Tab Navigation */}
           <div style={styles.tabNav}>
             <button
               onClick={() => setActiveTab('questions')}
@@ -778,11 +832,12 @@ export default function JarApp() {
             </button>
           </div>
 
+          {/* Tab Content */}
           {activeTab === 'questions' && (
             <div style={styles.tabContent}>
               <form onSubmit={addQuestion} style={styles.form}>
                 <textarea
-                  placeholder="Who are you really..?"
+                  placeholder="Add a Question to the Vault..."
                   value={questionText}
                   onChange={(e) => setQuestionText(e.target.value)}
                   required
@@ -815,6 +870,7 @@ export default function JarApp() {
             </div>
           )}
 
+          {/* Invite Modal */}
           {showInviteModal && (
             <div style={styles.modalOverlay} onClick={() => setShowInviteModal(false)}>
               <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
@@ -938,6 +994,8 @@ const styles = {
     position: 'relative',
     overflow: 'hidden',
   },
+
+  // Landing
   landing: {
     minHeight: '100vh',
     display: 'flex',
@@ -959,6 +1017,12 @@ const styles = {
     fontFamily: "'Cormorant Garamond', Georgia, serif",
     color: '#F5F5F5',
   },
+  subtitle: {
+    display: 'none',
+  },
+  landingDescription: {
+    display: 'none',
+  },
   heroButton: {
     background: 'rgba(97, 55, 117, 0.2)',
     border: '1px solid rgba(180, 161, 196, 0.5)',
@@ -974,6 +1038,8 @@ const styles = {
     backdropFilter: 'blur(8px)',
     boxShadow: '0 0 30px rgba(97, 55, 117, 0.2)',
   },
+
+  // Auth
   authContainer: {
     minHeight: '100vh',
     display: 'flex',
@@ -1035,6 +1101,18 @@ const styles = {
     alignItems: 'center',
     justifyContent: 'center',
   },
+  secondaryButton: {
+    background: 'transparent',
+    border: '1px solid rgba(97, 55, 117, 0.3)',
+    padding: '12px 28px',
+    borderRadius: '24px',
+    color: '#B0B0C8',
+    cursor: 'pointer',
+    fontSize: '14px',
+    fontWeight: 400,
+    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+    fontFamily: "'Cormorant Garamond', Georgia, serif",
+  },
   toggleButton: {
     background: 'transparent',
     border: 'none',
@@ -1045,6 +1123,8 @@ const styles = {
     fontFamily: "'Cormorant Garamond', Georgia, serif",
     transition: 'color 0.3s',
   },
+
+  // Jar Select
   jarSelectContainer: {
     maxWidth: '1200px',
     margin: '0 auto',
@@ -1083,6 +1163,7 @@ const styles = {
     border: '1px solid rgba(97, 55, 117, 0.2)',
     borderRadius: '16px',
     padding: '28px',
+    cursor: 'pointer',
     transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
     backdropFilter: 'blur(8px)',
   },
@@ -1114,6 +1195,8 @@ const styles = {
     fontSize: '14px',
     fontFamily: "'Cormorant Garamond', Georgia, serif",
   },
+
+  // Jar Main
   jarMainContainer: {
     maxWidth: '800px',
     margin: '0 auto',
